@@ -1,0 +1,24 @@
+{
+  "num_items": 1,
+  "items": [
+  {
+    "id": "0",
+    "name": "Meme one",
+    "text-locations": [
+      {
+        "x": 280,
+        "y": 30,
+        "width": 210,
+        "height": 100
+      },
+      {
+        "x": 290,
+        "y": 228,
+        "width": 200,
+        "height": 90
+      }
+    ],
+    "template-location": "./meme1.jpeg"
+  }
+]
+}
