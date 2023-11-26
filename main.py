@@ -23,8 +23,14 @@ async def shuffle(update: Update, context: ContextTypes.DEFAULT_TYPE, shuffler: 
 
 async def select(update: Update, context: ContextTypes.DEFAULT_TYPE, user_shuffle) -> None:
     # Already expect the message (the image already shows how many texts are needed)
-    msg = update.message.text.split(" ")[1].upper()
-    texts = ' '.join(update.message.text.split(" ")[2:]).split(":")
+    # TODO: Get message inside " so that the user can use :
+    try:
+        msg = update.message.text.split(" ")[1].upper()
+        texts = ' '.join(update.message.text.split(" ")[2:]).split(":")
+    except:
+        await update.message.reply_text("Your text format was not correct")
+        return
+
     if msg not in "ABC":
         await update.message.reply_text("Wrong char, please select A, B or C")
         return
@@ -45,8 +51,15 @@ async def select(update: Update, context: ContextTypes.DEFAULT_TYPE, user_shuffl
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    # TODO: Add instruction
-    await update.message.reply_html(f"<b>bold</b>")
+
+    instr = f"""
+    Hello {update.effective_user.first_name}👋
+    
+    1. /shuffle \nGet 3 random images to choose from. Not happy with them? Shuffle again
+    2. /pick \nA Text One : Text Two -> Pick one of the images you like and send ALL the texts separated by ':'
+    Example: /pick B Sentence One : Sentence Two 
+    """
+    await update.message.reply_html(instr)
 
 
 async def unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -63,6 +76,7 @@ if __name__ == '__main__':
 
     app.add_handler(CommandHandler("shuffle", lambda x, y: shuffle(x, y, shuffler, user_shuffle)))
     app.add_handler(CommandHandler("select", lambda x, y: select(x, y, user_shuffle)))
+    app.add_handler(CommandHandler("pick", lambda x, y: select(x, y, user_shuffle)))
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("sara", hello))
     app.add_handler(MessageHandler(filters.COMMAND, unknown))

@@ -15,8 +15,8 @@ class ImageShuffler:
         file_data = json.load(f)
         f.close()
 
-        self.num_items = file_data["num_items"]
         self.items = file_data["items"]
+        self.num_items = len(self.items)
 
         self.options = ["A", "B", "C"]
         self.cur_rotation = {}  # key: "A", "B", "C", value: (template_id, template_name, template_location
@@ -25,12 +25,92 @@ class ImageShuffler:
         """
         :return 3 image paths with their associated id, name and template_location
         """
-        temp_ids = random.Random().sample(population=range(0, self.num_items), k=3, counts=[3])
+        temp_ids = random.Random().sample(population=range(0, self.num_items), k=3)
 
         for ind, temp_id in enumerate(temp_ids):
             self.cur_rotation[self.options[ind]] = self.items[temp_id]
 
         return self.cur_rotation
+
+    def _images_in_row(self, images: list[Image]) -> bool:
+        votes = 0
+        for image in images:
+            if image.width > image.height * 1.25:
+                votes -= 1
+            elif image.height > image.width:
+                votes += 1
+        return votes > 0
+
+    def _determine_dimensions(self, images: list[Image], in_row) -> dict:
+        image_coordinates = [(0, 0)]  # x, y
+        max_height = images[0].height
+        max_width = images[0].width
+        for ind in range(1, len(self.options)):
+            if in_row:
+                x = image_coordinates[ind - 1][0] + images[ind - 1].width
+                y = 0
+                max_height = max(max_height, images[ind].height)
+            else:
+                x = 0
+                y = image_coordinates[ind - 1][1] + images[ind - 1].height
+                max_width = max(max_width, images[ind].width)
+            image_coordinates.append((x, y))
+
+        return {
+            "max_width": max_width,
+            "max_height": max_height,
+            "image_coordinates": image_coordinates
+        }
+
+    def _scale_images(self, images: list[Image], image_coordinates: list[tuple],
+                      in_row: bool, max_height: int, max_width: int) -> dict:
+        """
+        :param images: List of images
+        :param image_coordinates: List of image coordinates and text coordinates
+        :param in_row: Are images in a row or column
+        :param max_height: Biggest image height
+        :param max_width: Biggest image width
+        :return: None
+        Updates the attribute self.cur_rotation
+        """
+        # Resize the image
+        # In row => Set height
+        # In column => Set width
+        # Cur x coordinate = prev width * prev scale_ratio
+        prev_scale_ratio = [1] * (len(self.options) + 1)
+        for i in range(0, len(self.options)):
+            img = images[i]
+
+            if in_row:
+                scale_ratio = max_height / img.height
+            else:
+                scale_ratio = max_width / img.width
+
+            new_size = (int(img.width * scale_ratio), int(img.height * scale_ratio))
+            images[i] = img.resize(new_size)
+
+            # Adjust the coordinates and text box location
+            # x value is:
+            # prev coordinate +
+            if i > 0:
+                if in_row:
+                    new_x = int(image_coordinates[i-1][0] + images[i-1].width * prev_scale_ratio[i])
+                    image_coordinates[i] = (new_x, image_coordinates[i][1])
+                else:
+                    new_y = int(image_coordinates[i-1][1] + images[i-1].height * prev_scale_ratio[i])
+                    image_coordinates[i] = (image_coordinates[i][0], new_y)
+
+            # Adjust the help text
+            ctr = 0
+            for j in range(len(self.cur_rotation[self.options[i]]["text-locations"])):
+                x_co, y_co, w, h = self.cur_rotation[self.options[i]]["text-locations"][j].values()
+                self.cur_rotation[self.options[i]]["text-locations"][ctr]["x"] = int(x_co * scale_ratio)
+                self.cur_rotation[self.options[i]]["text-locations"][ctr]["y"] = int(y_co * scale_ratio)
+
+                self.cur_rotation[self.options[i]]["text-locations"][ctr]["width"] = int(w * scale_ratio)
+                self.cur_rotation[self.options[i]]["text-locations"][ctr]["height"] = int(h * scale_ratio)
+
+                ctr += 1
 
     def generate_shuffle_image(self, user_id) -> str:
         """
@@ -47,36 +127,17 @@ class ImageShuffler:
         # If more images have a higher width than height, then stitch in column
         # Neg => In column
         # Pos => In Row
-        votes = 0
-        for image in images:
-            if image.width > image.height:
-                votes -= 1
-            elif image.height > image.width:
-                votes += 1
-
-        if votes < 0:
-            in_row = False
-        else:
-            in_row = True
+        in_row = self._images_in_row(images)
 
         # Determine the width and height of the stitched image
-        image_coordinates = [(0, 0)]  # x, y
-        max_height = 0
-        max_width = 0
-        for ind in range(1, len(self.options)):
-            if in_row:
-                x = image_coordinates[ind - 1][0] + images[ind - 1].width
-                y = 0
-                max_height = max(max_height, images[ind - 1].height)
-            else:
-                x = 0
-                y = image_coordinates[ind - 1][1] + images[ind - 1].height
-                max_width = max(max_width, images[ind - 1].width)
-            image_coordinates.append((x, y))
+        max_width, max_height, image_coordinates = self._determine_dimensions(images, in_row).values()
+
+        self._scale_images(images, image_coordinates, in_row, max_height, max_width)
 
         # Create a new blank image with the calculated dimensions
         if in_row:
-            stitched_image = Image.new('RGB', (image_coordinates[-1][0] + images[-1].width, max_height))
+            width = image_coordinates[-1][0] + images[-1].width
+            stitched_image = Image.new('RGB', (width, max_height))
         else:
             stitched_image = Image.new('RGB', (max_width, image_coordinates[-1][1] + images[-1].height))
 
@@ -93,6 +154,7 @@ class ImageShuffler:
         rectangle_outline_color = (255, 255, 255)
         rectangle_size = 68
 
+        # Add rectangle
         for i in range(len(self.options)):
             x, y = image_coordinates[i]
 
@@ -161,7 +223,12 @@ class ImageGenerator:
 
             self.add_text(draw, text, x, y, width, height)
 
-        self.image.save(self.get_file_path())
+        # Convert to rgb to prevent RGBA mode errors
+        if self.image.format == "PNG":
+            rgb_img = self.image.convert("RGB")
+            rgb_img.save(self.get_file_path())
+        else:
+            self.image.save(self.get_file_path())
         return self.get_file_path()
 
     @staticmethod
@@ -214,12 +281,17 @@ class ImageGenerator:
             try:
                 img_id, name, text_locations, template_location = file_data["items"][int(template_id)].values()
                 return ImageGenerator(img_id, name, text_locations, template_location, username)
-            except:
+            except Exception as e:
+                print(str(e))
                 return None
 
 
 if __name__ == '__main__':
     shuffler = ImageShuffler()
     rotation = shuffler.shuffle()  # can generate a Gen from the date returned from here to avoid
+
+
+    #gen = ImageGenerator.factory("2", "flohop")
+    # gen.add_all_text(["A", "B", "C", "D"])
 
     print(shuffler.generate_shuffle_image("flohop"))
