@@ -1,4 +1,5 @@
 import asyncio
+import copy
 
 from github import Auth, Github
 import shlex
@@ -17,7 +18,7 @@ async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 async def shuffle(update: Update, context: ContextTypes.DEFAULT_TYPE, shuffler: ImageShuffler,
                   user_shuffle: dict) -> None:
     user_shuffle[update.effective_user.id] = shuffler.shuffle()
-    image_path = shuffler.generate_shuffle_image(update.effective_user.id)
+    image_path = shuffler.generate_shuffle_image(update.effective_user.id, copy.deepcopy(user_shuffle[update.effective_user.id]))
 
     with open(image_path, 'rb') as f:
         await update.message.reply_photo(photo=f)
@@ -63,8 +64,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     Hello {update.effective_user.first_name}👋
     
     1. /shuffle \nGet 3 random images to choose from. Not happy with them? Shuffle again
-    2. /pick \nA Text One : Text Two -> Pick one of the images you like and send ALL the texts separated by ':'
-    Example: /pick B Sentence One : Sentence Two 
+    2. /A "Text One" "Text Two" -> Pick one of the images you like and send ALL the texts separated by ':'
     """
     await update.message.reply_html(instr)
 
@@ -79,8 +79,9 @@ if __name__ == '__main__':
 
     user_shuffle = {}  # key: username, value: current shuffle
 
-    shuffler = ImageShuffler()  # Every uses uses the same shuffler
+    shuffler = ImageShuffler()  # Every uses the same shuffler
 
+    app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("shuffle", lambda x, y: shuffle(x, y, shuffler, user_shuffle)))
     app.add_handler(CommandHandler("A", lambda x, y: select(x, y, user_shuffle)))
     app.add_handler(CommandHandler("B", lambda x, y: select(x, y, user_shuffle)))

@@ -20,7 +20,6 @@ class ImageShuffler:
         self.num_items = len(self.items)
 
         self.options = ["A", "B", "C"]
-        # self.cur_rotation = {}  # key: "A", "B", "C", value: (template_id, template_name, template_location
 
     def shuffle(self) -> dict[str, typing.Any]:
         """
@@ -65,7 +64,7 @@ class ImageShuffler:
         }
 
     def _scale_images(self, images: list[Image], image_coordinates: list[tuple],
-                      in_row: bool, max_height: int, max_width: int):
+                      in_row: bool, max_height: int, max_width: int, cur_rotation):
         """
         :param images: List of images
         :param image_coordinates: List of image coordinates and text coordinates
@@ -105,13 +104,13 @@ class ImageShuffler:
 
             # Adjust the help text
             ctr = 0
-            for j in range(len(self.cur_rotation[self.options[i]]["text-locations"])):
-                x_co, y_co, w, h = self.cur_rotation[self.options[i]]["text-locations"][j].values()
-                self.cur_rotation[self.options[i]]["text-locations"][ctr]["x"] = int(x_co * scale_ratio)
-                self.cur_rotation[self.options[i]]["text-locations"][ctr]["y"] = int(y_co * scale_ratio)
+            for j in range(len(cur_rotation[self.options[i]]["text-locations"])):
+                x_co, y_co, w, h = cur_rotation[self.options[i]]["text-locations"][j].values()
+                cur_rotation[self.options[i]]["text-locations"][ctr]["x"] = int(x_co * scale_ratio)
+                cur_rotation[self.options[i]]["text-locations"][ctr]["y"] = int(y_co * scale_ratio)
 
-                self.cur_rotation[self.options[i]]["text-locations"][ctr]["width"] = int(w * scale_ratio)
-                self.cur_rotation[self.options[i]]["text-locations"][ctr]["height"] = int(h * scale_ratio)
+                cur_rotation[self.options[i]]["text-locations"][ctr]["width"] = int(w * scale_ratio)
+                cur_rotation[self.options[i]]["text-locations"][ctr]["height"] = int(h * scale_ratio)
 
                 ctr += 1
 
@@ -135,9 +134,7 @@ class ImageShuffler:
         # Determine the width and height of the stitched image
         max_width, max_height, image_coordinates = self._determine_dimensions(images, in_row).values()
 
-        cur_rotation_unscaled = copy.deepcopy(cur_rotation.copy())
-
-        self._scale_images(images, image_coordinates, in_row, max_height, max_width)
+        self._scale_images(images, image_coordinates, in_row, max_height, max_width, cur_rotation)
 
         # Create a new blank image with the calculated dimensions
         if in_row:
@@ -172,7 +169,7 @@ class ImageShuffler:
 
         # Add the guide text to the image
         for i in range(len(self.options)):
-            for ind, elem in enumerate(self.cur_rotation[self.options[i]]["text-locations"]):
+            for ind, elem in enumerate(cur_rotation[self.options[i]]["text-locations"]):
                 elem_x, elem_y, elem_with, elem_height = elem.values()
                 ImageGenerator.add_text(draw,
                                         f"Text {ind + 1}",
@@ -190,8 +187,6 @@ class ImageShuffler:
             img.close()
 
         # Reset the image sizes
-        self.cur_rotation = cur_rotation_unscaled
-
         return image_path
 
 
@@ -214,11 +209,17 @@ class ImageGenerator:
     def get_file_path(self):
         return f"{self.OUTPUT_DIR}/{self.id}_{self.username}.jpeg"
 
-    def add_all_text(self, texts: str) -> str:
+    def get_text_from_ai(self):
+        """
+        Use the meme description to get the meme text from AI
+        :return: list of texts
+        """
+
+    def add_all_text(self, texts: list[str]) -> str:
         """
         Add
         :param texts: List of texts to insert in the boxes.
-        :return: returrn image location
+        :return: image location
         :raises AssertionError if the length of texts does not match the number of boxes
         """
         assert len(texts) == len(self.text_locations), "The number of texts has to match the number of boxes"
