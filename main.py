@@ -1,6 +1,7 @@
 import asyncio
 
 from github import Auth, Github
+import shlex
 from meme_creator import ImageShuffler, ImageGenerator
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters
@@ -13,7 +14,8 @@ async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(f"Alles gute zum Jahrestag❤️")
 
 
-async def shuffle(update: Update, context: ContextTypes.DEFAULT_TYPE, shuffler: ImageShuffler, user_shuffle: dict) -> None:
+async def shuffle(update: Update, context: ContextTypes.DEFAULT_TYPE, shuffler: ImageShuffler,
+                  user_shuffle: dict) -> None:
     user_shuffle[update.effective_user.id] = shuffler.shuffle()
     image_path = shuffler.generate_shuffle_image(update.effective_user.id)
 
@@ -23,16 +25,20 @@ async def shuffle(update: Update, context: ContextTypes.DEFAULT_TYPE, shuffler: 
 
 async def select(update: Update, context: ContextTypes.DEFAULT_TYPE, user_shuffle) -> None:
     # Already expect the message (the image already shows how many texts are needed)
-    # TODO: Get message inside " so that the user can use :
+    # Format /A "Text One" Text Two"
     try:
-        msg = update.message.text.split(" ")[1].upper()
-        texts = ' '.join(update.message.text.split(" ")[2:]).split(":")
+        msg = update.message.text[1]
+        texts = shlex.split(update.message.text[2:])
     except:
-        await update.message.reply_text("Your text format was not correct")
+        await update.message.reply_text("Your text format was not correct.\n"
+                                        "Please make sure it follows this formula: \n"
+                                        "First pick the image you want -> /A or /B or /C \n"
+                                        "Then add all the needed texts -> \"Text One\" \" Text Two\""
+                                        "Example: \A \"Hello \" \" World \"")
         return
 
     if msg not in "ABC":
-        await update.message.reply_text("Wrong char, please select A, B or C")
+        await update.message.reply_text("Wrong command, please use /A, /B or /C")
         return
     if update.effective_user.id not in user_shuffle:
         await update.message.reply_text("Not so quick there. You first have to call /shuffle")
@@ -40,10 +46,12 @@ async def select(update: Update, context: ContextTypes.DEFAULT_TYPE, user_shuffl
 
     item = user_shuffle[update.effective_user.id][msg]
     if texts[0] == '' or len(texts) != len(item["text-locations"]):
-        await update.message.reply_text(f"Did not get the right number of texts, please provide exactly {len(item['text-locations'])} : separated texts")
+        await update.message.reply_text(
+            f"Did not get the right number of texts, please provide exactly {len(item['text-locations'])} : separated texts")
         return
 
-    gen = ImageGenerator(item["id"], item["name"], item["text-locations"], item["template-location"], update.effective_user.id)
+    gen = ImageGenerator(item["id"], item["name"], item["text-locations"], item["template-location"],
+                         update.effective_user.id)
 
     image_path = gen.add_all_text(texts)
     with open(image_path, 'rb') as f:
@@ -51,7 +59,6 @@ async def select(update: Update, context: ContextTypes.DEFAULT_TYPE, user_shuffl
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-
     instr = f"""
     Hello {update.effective_user.first_name}👋
     
@@ -72,12 +79,12 @@ if __name__ == '__main__':
 
     user_shuffle = {}  # key: username, value: current shuffle
 
-    shuffler = ImageShuffler()
+    shuffler = ImageShuffler()  # Every uses uses the same shuffler
 
     app.add_handler(CommandHandler("shuffle", lambda x, y: shuffle(x, y, shuffler, user_shuffle)))
-    app.add_handler(CommandHandler("select", lambda x, y: select(x, y, user_shuffle)))
-    app.add_handler(CommandHandler("pick", lambda x, y: select(x, y, user_shuffle)))
-    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("A", lambda x, y: select(x, y, user_shuffle)))
+    app.add_handler(CommandHandler("B", lambda x, y: select(x, y, user_shuffle)))
+    app.add_handler(CommandHandler("C", lambda x, y: select(x, y, user_shuffle)))
     app.add_handler(CommandHandler("sara", hello))
     app.add_handler(MessageHandler(filters.COMMAND, unknown))
 

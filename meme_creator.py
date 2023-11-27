@@ -1,3 +1,4 @@
+import copy
 import json
 import os.path
 import random
@@ -19,18 +20,19 @@ class ImageShuffler:
         self.num_items = len(self.items)
 
         self.options = ["A", "B", "C"]
-        self.cur_rotation = {}  # key: "A", "B", "C", value: (template_id, template_name, template_location
+        # self.cur_rotation = {}  # key: "A", "B", "C", value: (template_id, template_name, template_location
 
     def shuffle(self) -> dict[str, typing.Any]:
         """
         :return 3 image paths with their associated id, name and template_location
         """
+        res = {}
         temp_ids = random.Random().sample(population=range(0, self.num_items), k=3)
 
         for ind, temp_id in enumerate(temp_ids):
-            self.cur_rotation[self.options[ind]] = self.items[temp_id]
+            res[self.options[ind]] = self.items[temp_id]
 
-        return self.cur_rotation
+        return res
 
     def _images_in_row(self, images: list[Image]) -> bool:
         votes = 0
@@ -63,20 +65,21 @@ class ImageShuffler:
         }
 
     def _scale_images(self, images: list[Image], image_coordinates: list[tuple],
-                      in_row: bool, max_height: int, max_width: int) -> dict:
+                      in_row: bool, max_height: int, max_width: int):
         """
         :param images: List of images
         :param image_coordinates: List of image coordinates and text coordinates
         :param in_row: Are images in a row or column
         :param max_height: Biggest image height
         :param max_width: Biggest image width
-        :return: None
+        :return: Scaled image coordinates
         Updates the attribute self.cur_rotation
         """
         # Resize the image
         # In row => Set height
         # In column => Set width
         # Cur x coordinate = prev width * prev scale_ratio
+
         prev_scale_ratio = [1] * (len(self.options) + 1)
         for i in range(0, len(self.options)):
             img = images[i]
@@ -112,17 +115,17 @@ class ImageShuffler:
 
                 ctr += 1
 
-    def generate_shuffle_image(self, user_id) -> str:
+    def generate_shuffle_image(self, user_id, cur_rotation) -> str:
         """
         From the 3 selected shuffle images, create one compositon
         where the letter "A"/"B"/"C" is added
         :return: Path to generated shuffle image
 
         """
-        assert len(self.cur_rotation) != 0, "Call shuffle first to generate the images"
+        assert len(cur_rotation) != 0, "Call shuffle first to generate the images"
         images = []
         for opt in self.options:
-            images.append(Image.open(os.path.join(self.TEMPLATE_DIR, self.cur_rotation[opt]["template-location"])))
+            images.append(Image.open(os.path.join(self.TEMPLATE_DIR, cur_rotation[opt]["template-location"])))
 
         # If more images have a higher width than height, then stitch in column
         # Neg => In column
@@ -131,6 +134,8 @@ class ImageShuffler:
 
         # Determine the width and height of the stitched image
         max_width, max_height, image_coordinates = self._determine_dimensions(images, in_row).values()
+
+        cur_rotation_unscaled = copy.deepcopy(cur_rotation.copy())
 
         self._scale_images(images, image_coordinates, in_row, max_height, max_width)
 
@@ -183,6 +188,9 @@ class ImageShuffler:
         # Close all images
         for img in images:
             img.close()
+
+        # Reset the image sizes
+        self.cur_rotation = cur_rotation_unscaled
 
         return image_path
 
@@ -290,8 +298,10 @@ if __name__ == '__main__':
     shuffler = ImageShuffler()
     rotation = shuffler.shuffle()  # can generate a Gen from the date returned from here to avoid
 
-
-    #gen = ImageGenerator.factory("2", "flohop")
-    # gen.add_all_text(["A", "B", "C", "D"])
+    #gen = ImageGenerator.factory("9", "flohop")
+    #gen.add_all_text(["One", "Two"])
 
     print(shuffler.generate_shuffle_image("flohop"))
+    item = shuffler.cur_rotation["C"]
+    gen = ImageGenerator(item["id"], item["name"], item["text-locations"], item["template-location"], "flohop")
+    print(gen.add_all_text(["Text One", "Text Two"]))
