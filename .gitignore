@@ -1,2 +1,4 @@
-.created_memes/*
-.stiched_memes/*
+created_memes/*
+stiched_memes/*
+
+.env
