@@ -7,7 +7,24 @@ import typing
 from PIL import Image, ImageFont, ImageDraw
 
 
+def singleton(class_):
+    instances = {}
+
+    def getinstance(*args, **kwargs):
+        if class_ not in instances:
+            instances[class_] = class_(*args, **kwargs)
+        return instances[class_]
+
+    return getinstance
+
+
+@singleton
 class ImageShuffler:
+    """
+    Stateless ImageShuffler that can generate
+    a stitched image of the 3 randomly selected memes
+    The results should be stored outside the class
+    """
     STITCH_DIRECTORY = "./stitched_memes"
     TEMPLATE_DIR = "./meme_templates"
 
@@ -25,7 +42,7 @@ class ImageShuffler:
         """
         :return 3 image paths with their associated id, name and template_location
         """
-        res = {}
+        res = {}  # key: "A","B" or "C" value: template element
         temp_ids = random.Random().sample(population=range(0, self.num_items), k=3)
 
         for ind, temp_id in enumerate(temp_ids):
@@ -34,6 +51,10 @@ class ImageShuffler:
         return res
 
     def _images_in_row(self, images: list[Image]) -> bool:
+        """
+        :param images: List of the images that get stitched together
+        :return: True if the images should be stitched in a row, false otherwise
+        """
         votes = 0
         for image in images:
             if image.width > image.height * 1.25:
@@ -43,6 +64,11 @@ class ImageShuffler:
         return votes > 0
 
     def _determine_dimensions(self, images: list[Image], in_row) -> dict:
+        """
+        :param images: List of images
+        :param in_row: Determine of the images should be stitched in a row
+        :return: Dict containing the dimensions of the final image and the start location of each image
+        """
         image_coordinates = [(0, 0)]  # x, y
         max_height = images[0].height
         max_width = images[0].width
@@ -66,13 +92,13 @@ class ImageShuffler:
     def _scale_images(self, images: list[Image], image_coordinates: list[tuple],
                       in_row: bool, max_height: int, max_width: int, cur_rotation):
         """
+        Updates the parameter cur_rotation in place
         :param images: List of images
         :param image_coordinates: List of image coordinates and text coordinates
         :param in_row: Are images in a row or column
         :param max_height: Biggest image height
         :param max_width: Biggest image width
         :return: Scaled image coordinates
-        Updates the attribute self.cur_rotation
         """
         # Resize the image
         # In row => Set height
@@ -96,23 +122,20 @@ class ImageShuffler:
             # prev coordinate +
             if i > 0:
                 if in_row:
-                    new_x = int(image_coordinates[i-1][0] + images[i-1].width * prev_scale_ratio[i])
+                    new_x = int(image_coordinates[i - 1][0] + images[i - 1].width * prev_scale_ratio[i])
                     image_coordinates[i] = (new_x, image_coordinates[i][1])
                 else:
-                    new_y = int(image_coordinates[i-1][1] + images[i-1].height * prev_scale_ratio[i])
+                    new_y = int(image_coordinates[i - 1][1] + images[i - 1].height * prev_scale_ratio[i])
                     image_coordinates[i] = (image_coordinates[i][0], new_y)
 
             # Adjust the help text
-            ctr = 0
-            for j in range(len(cur_rotation[self.options[i]]["text-locations"])):
+            for ctr, j in enumerate(range(len(cur_rotation[self.options[i]]["text-locations"]))):
                 x_co, y_co, w, h = cur_rotation[self.options[i]]["text-locations"][j].values()
                 cur_rotation[self.options[i]]["text-locations"][ctr]["x"] = int(x_co * scale_ratio)
                 cur_rotation[self.options[i]]["text-locations"][ctr]["y"] = int(y_co * scale_ratio)
 
                 cur_rotation[self.options[i]]["text-locations"][ctr]["width"] = int(w * scale_ratio)
                 cur_rotation[self.options[i]]["text-locations"][ctr]["height"] = int(h * scale_ratio)
-
-                ctr += 1
 
     def generate_shuffle_image(self, user_id, cur_rotation) -> str:
         """
@@ -126,14 +149,12 @@ class ImageShuffler:
         for opt in self.options:
             images.append(Image.open(os.path.join(self.TEMPLATE_DIR, cur_rotation[opt]["template-location"])))
 
-        # If more images have a higher width than height, then stitch in column
-        # Neg => In column
-        # Pos => In Row
         in_row = self._images_in_row(images)
 
-        # Determine the width and height of the stitched image
+        # Determine the width, height and start coordinates of the images of the stitched image
         max_width, max_height, image_coordinates = self._determine_dimensions(images, in_row).values()
 
+        # Scale images to avoid black space
         self._scale_images(images, image_coordinates, in_row, max_height, max_width, cur_rotation)
 
         # Create a new blank image with the calculated dimensions
@@ -147,10 +168,8 @@ class ImageShuffler:
         for ind in range(len(self.options)):
             stitched_image.paste(images[ind], image_coordinates[ind])
 
-        # Add A/B/C to the image
+        # Add "A"/"B"/"C" to the image
         draw = ImageDraw.Draw(stitched_image)
-
-        # fnt = ImageFont.truetype("./COMIC.TTF", 64)
 
         rectangle_fill_color = (0, 0, 0)
         rectangle_outline_color = (255, 255, 255)
@@ -191,11 +210,23 @@ class ImageShuffler:
 
 
 class ImageGenerator:
+    """
+    One instance of the generator per template
+    for which text should be added
+    """
     OUTPUT_DIR = "./created_memes"
     TEMPLATE_DIR = "./meme_templates"
 
-    def __init__(self, id, name, text_locations: list, template_location, username: str):
-        self.id = id
+    def __init__(self, _id, name, text_locations: list, template_location, username: str):
+        """
+
+        :param _id: meme template id
+        :param name: The name of the meme
+        :param text_locations: List of all locations of the text (x, y, width, height)
+        :param template_location: The file location of the template
+        :param username: id of user creating the meme
+        """
+        self.id = _id
         self.name = name
         self.text_locations = text_locations
         self.template_location = template_location
@@ -207,17 +238,13 @@ class ImageGenerator:
             print("Could not find the file at location: ", self.template_location)
 
     def get_file_path(self):
+        """
+        :return: Path to where the finished image should be saved
+        """
         return f"{self.OUTPUT_DIR}/{self.id}_{self.username}.jpeg"
-
-    def get_text_from_ai(self):
-        """
-        Use the meme description to get the meme text from AI
-        :return: list of texts
-        """
 
     def add_all_text(self, texts: list[str]) -> str:
         """
-        Add
         :param texts: List of texts to insert in the boxes.
         :return: image location
         :raises AssertionError if the length of texts does not match the number of boxes
@@ -242,13 +269,23 @@ class ImageGenerator:
 
     @staticmethod
     def add_text(draw: ImageDraw, quote: str, x: int, y: int, width: int, height: int) -> None:
-        text_width = width * 0.8
-        text_max_height = height * 0.8
+        """
+        Adds text to the ImageDraw object that fits the text box
+        :param draw: Draw object
+        :param quote: The text that should be added
+        :param x: x-coordinate of text location
+        :param y: y-coordinate of text location
+        :param width: width of the text block
+        :param height: height of the text block
+        :return: None (Changed draw object in place)
+        """
+        text_width = width * 0.9
+        text_max_height = height * 0.9
 
+        # Reduce the font size until it fits the box
         size = 36
         while size > 9:
-            # Insert your own font path here
-            font_path = "Times New Roman.ttf"
+            font_path = "COMIC.TTF"
             font = ImageFont.truetype(font_path, size, layout_engine=ImageFont.Layout.BASIC)
             lines = []
             line = ""
@@ -283,6 +320,12 @@ class ImageGenerator:
 
     @staticmethod
     def factory(template_id: str, username: str):
+        """
+        Convenience method
+        :param template_id: Id of the template
+        :param username: identifier of the person creating the meme
+        :return:
+        """
         # Given the id returns a Generator Object
         with open("./meme_data.json") as f:
             file_data = json.load(f)
@@ -299,10 +342,11 @@ if __name__ == '__main__':
     shuffler = ImageShuffler()
     rotation = shuffler.shuffle()  # can generate a Gen from the date returned from here to avoid
 
-    #gen = ImageGenerator.factory("9", "flohop")
-    #gen.add_all_text(["One", "Two"])
+    shuffler.generate_shuffle_image("flohop", rotation)
 
-    print(shuffler.generate_shuffle_image("flohop"))
-    item = shuffler.cur_rotation["C"]
-    gen = ImageGenerator(item["id"], item["name"], item["text-locations"], item["template-location"], "flohop")
-    print(gen.add_all_text(["Text One", "Text Two"]))
+    # gen = ImageGenerator.factory("9", "flohop")
+    # gen.add_all_text(["One", "Two"])
+
+    # print(shuffler.generate_shuffle_image("flohop"))
+    # gen = ImageGenerator(item["id"], item["name"], item["text-locations"], item["template-location"], "flohop")
+    # print(gen.add_all_text(["Text One", "Text Two"]))
