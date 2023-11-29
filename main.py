@@ -35,8 +35,9 @@ def get_num_help_text(command: str, i: int) -> str:
             f"Example: /{command} {' '.join([TEXT_STRING] * i)}"
 
 
-async def shuffle(update: Update, context: ContextTypes.DEFAULT_TYPE, shuffler: ImageShuffler,
+async def shuffle(update: Update, shuffler: ImageShuffler,
                   user_shuffle: dict) -> None:
+
     user_shuffle[update.effective_user.id] = shuffler.shuffle()
     image_path = shuffler.generate_shuffle_image(update.effective_user.id,
                                                  copy.deepcopy(user_shuffle[update.effective_user.id]))
@@ -45,7 +46,7 @@ async def shuffle(update: Update, context: ContextTypes.DEFAULT_TYPE, shuffler: 
         await update.message.reply_photo(photo=f)
 
 
-async def select(update: Update, context: ContextTypes.DEFAULT_TYPE, user_shuffle) -> None:
+async def select(update: Update, user_shuffle: dict) -> None:
     # Already expect the message (the image already shows how many texts are needed)
     # Format /A "Text One" Text Two"
 
@@ -69,7 +70,10 @@ async def select(update: Update, context: ContextTypes.DEFAULT_TYPE, user_shuffl
         await update.message.reply_text(get_num_help_text(msg, len(item["text-locations"])))
         return
 
-    gen = ImageGenerator(item["id"], item["name"], item["text-locations"], item["template-location"],
+    gen = ImageGenerator(item["id"],
+                         item["name"],
+                         item["text-locations"],
+                         item["template-location"],
                          update.effective_user.id)
 
     image_path = gen.add_all_text(texts)
@@ -77,7 +81,7 @@ async def select(update: Update, context: ContextTypes.DEFAULT_TYPE, user_shuffl
         await update.message.reply_photo(photo=f)
 
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def start(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     instr = f"""
     Hello {update.effective_user.first_name}👋
     {INSTRUCTIONS}"""
@@ -99,8 +103,8 @@ if __name__ == '__main__':
     shuffler = ImageShuffler()  # Everyone uses the same shuffler (is stateless).
 
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler(["shuffle", "s"], lambda x, y: shuffle(x, y, shuffler, user_shuffle)))
-    app.add_handler(CommandHandler(["A", "a", "B", "b", "C", "c"], lambda x, y: select(x, y, user_shuffle)))
+    app.add_handler(CommandHandler(["shuffle", "s"], lambda x, _: shuffle(x, shuffler, user_shuffle)))
+    app.add_handler(CommandHandler(["A", "a", "B", "b", "C", "c"], lambda x, _: select(x, user_shuffle)))
     app.add_handler(MessageHandler(filters.COMMAND, unknown))
 
     print("Started telegram bot")
