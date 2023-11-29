@@ -108,7 +108,7 @@ class TestImageShuffler:
         max_height = 616
         max_width = 700
 
-        image_shuffler._scale_images(images, image_coordinates, True, max_height, max_width)
+        image_shuffler._scale_images(images, image_coordinates, True, max_height, max_width, TEST_DATA_SHUFFLE)
 
         # Test that the attribute self.cur_rotation gets changed correctly
         assert image_coordinates == [(0, 0), (500, 616), (1146, 1115)]
