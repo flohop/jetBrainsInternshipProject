@@ -198,6 +198,10 @@ class ImageShuffler:
                                         elem_height)
 
         # Save the stitched image
+        # create the directory if needed
+        while not os.path.exists(self.STITCH_DIRECTORY):
+            os.makedirs(self.STITCH_DIRECTORY)
+
         image_path = os.path.join(self.STITCH_DIRECTORY, f"stitch_{user_id}.jpeg")
         stitched_image.save(image_path)
 
@@ -241,6 +245,9 @@ class ImageGenerator:
         """
         :return: Path to where the finished image should be saved
         """
+        # create the directory if needed
+        while not os.path.exists(self.OUTPUT_DIR):
+            os.makedirs(self.OUTPUT_DIR)
         return f"{self.OUTPUT_DIR}/{self.id}_{self.username}.jpeg"
 
     def add_all_text(self, texts: list[str]) -> str:
@@ -348,5 +355,6 @@ if __name__ == '__main__':
     # gen.add_all_text(["One", "Two"])
 
     # print(shuffler.generate_shuffle_image("flohop"))
+    # item = shuffler.shuffle()["A"]
     # gen = ImageGenerator(item["id"], item["name"], item["text-locations"], item["template-location"], "flohop")
     # print(gen.add_all_text(["Text One", "Text Two"]))
