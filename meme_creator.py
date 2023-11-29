@@ -1,4 +1,3 @@
-import copy
 import json
 import os.path
 import random
@@ -40,10 +39,12 @@ class ImageShuffler:
 
     def shuffle(self) -> dict[str, typing.Any]:
         """
-        :return 3 image paths with their associated id, name and template_location
+        :return 3 image paths with their associated id,
+        name and template_location
         """
         res = {}  # key: "A","B" or "C" value: template element
-        temp_ids = random.Random().sample(population=range(0, self.num_items), k=3)
+        temp_ids = random.Random()\
+            .sample(population=range(0, self.num_items), k=3)
 
         for ind, temp_id in enumerate(temp_ids):
             res[self.options[ind]] = self.items[temp_id]
