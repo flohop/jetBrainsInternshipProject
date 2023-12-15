@@ -1,3 +1,4 @@
+# type: ignore
 import json
 import os.path
 import random
@@ -210,7 +211,6 @@ class ImageShuffler:
         for img in images:
             img.close()
 
-        # Reset the image sizes
         return image_path
 
 
