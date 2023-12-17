@@ -37,3 +37,5 @@ jobs:
     - name: Test with pytest
       run: |
         pytest
+    - name: pre-commit
+      uses: pre-commit/action@v3.0.0
