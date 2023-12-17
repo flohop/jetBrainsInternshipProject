@@ -1,0 +1,12 @@
+{
+  "WRONG_FORMAT": "Please follow the instructions:\n%s",
+  "WRONG_COMMAND": "Wrong command, please use one of the following: \n%s",
+  "NO_SHUFFLE": "Not so quick there, you first have to call %s",
+  "WRONG_NUM": "Did not get the right number of texts, please provide exactly %i separated texts. \n Example: %s",
+  "SHUFFLE_HELP_TEXT": "Return a 3 randomly selected template from which you can choose one to create your meme",
+  "A_HELP_TEXT": "Pick image A (/A, /a), B (/B, /b) or C (/C, /c) and provide the right numbers of texts e.g. \"Text 1\" \"Text 2\"",
+  "START_HELP_TEXT": "Intro text to show what the app can do",
+  "UNKNOWN_COMMAND": "Sorry, I didn't understand that command.",
+  "HELLO_MESSAGE": "Hello %s \uD83D\uDC4B ",
+  "PLACEHOLDER_TEXT": "TEXT"
+}

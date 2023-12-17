@@ -1,0 +1,12 @@
+{
+  "WRONG_FORMAT": "Bitte folge den Anweisungen:\n%s",
+  "WRONG_COMMAND": "Falscher Befehl, bitte verwende einen der folgenden Befehle: \n%s",
+  "NO_SHUFFLE": "Nicht so schnell, du musst zuerst %s aufrufen",
+  "WRONG_NUM": "Die Anzahl der Texte stimmt nicht überein, bitte gib genau %i getrennte Texte an. \n Beispiel: %s",
+  "SHUFFLE_HELP_TEXT": "Gibt 3 zufällig ausgewählte Vorlagen zurück, aus denen du eine auswählen kannst, um dein Meme zu erstellen",
+  "A_HELP_TEXT": "Wähle Bild A (/A, /a), B (/B, /b) oder C (/C, /c) und gib die richtigen Nummern der Texte an, z.B. \"Text 1\" \"Text 2\"",
+  "START_HELP_TEXT": "Einführungstext, um zu zeigen, was die App kann",
+  "UNKNOWN_COMMAND": "Entschuldigung, ich habe diesen Befehl nicht verstanden.",
+  "HELLO_MESSAGE": "Hallo %s \uD83D\uDC4B ",
+  "PLACEHOLDER_TEXT": "TEXT"
+}
