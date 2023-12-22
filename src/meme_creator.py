@@ -3,6 +3,9 @@ import os.path
 import random
 import typing
 
+from dotenv import load_dotenv
+from pymongo import MongoClient
+
 from PIL import Image, ImageFont, ImageDraw
 
 
@@ -25,37 +28,55 @@ class ImageShuffler:
     The results should be stored outside the class
     """
 
-    # Constants
-    STITCH_DIRECTORY = "./stitched_memes"
-    TEMPLATE_DIR = "./meme_templates"
-    DATA_LOCATION = "./meme_data.json"
+    # Constant
+    def __init__(self, config_file):
+        # Load the configs
+        with open(config_file) as f:
+            self.CONFIGS = json.load(f)
 
-    RECTANGLE_FILL_COLOR = (0, 0, 0)
-    RECTANGLE_OUTLINE_COLOR = (255, 255, 255)
-    RECTANGLE_SIZE = 68
-    PLACEHOLDER_TEXT = "Text"
-    FILE_FORMAT = "stitch_%s.jpeg"
-    OPTIONS = ["A", "B", "C"]
-    FILE_MODE = "RGB"
+        self.ASSETS_DIRECTORY: str = self.CONFIGS["ASSETS_DIRECTORY"]
+        self.CONFIGS_DIRECTORY: str = self.CONFIGS["CONFIGS_DIRECTORY"]
 
-    def __init__(self):
-        f = open(ImageGenerator.DATA_LOCATION)
-        file_data = json.load(f)
-        f.close()
+        self.STITCH_DIRECTORY: str = os.path.join(
+            self.ASSETS_DIRECTORY, self.CONFIGS["STITCH_DIRECTORY"]
+        )
+        self.TEMPLATE_DIRECTORY: str = os.path.join(
+            self.ASSETS_DIRECTORY, self.CONFIGS["TEMPLATE_DIRECTORY"]
+        )
+        self.CREATED_DIRECTORY: str = os.path.join(
+            self.ASSETS_DIRECTORY, self.CONFIGS["CREATED_DIRECTORY"]
+        )
+        self.DATA_LOCATION: str = os.path.join(
+            self.CONFIGS_DIRECTORY, self.CONFIGS["DATA_LOCATION"]
+        )
 
-        self.items = file_data["items"]
-        self.num_items = len(self.items)
+        self.RECTANGLE_FILL_COLOR = tuple(self.CONFIGS["RECTANGLE_FILL_COLOR"])
+        self.RECTANGLE_OUTLINE_COLOR = tuple(self.CONFIGS["RECTANGLE_OUTLINE_COLOR"])
+        self.RECTANGLE_SIZE = self.CONFIGS["RECTANGLE_SIZE"]
+        self.FILE_FORMAT = self.CONFIGS["STITCH_FILE_FORMAT"]
+        self.OPTIONS = self.CONFIGS["OPTIONS"]
+        self.HEIGHT_BIAS = self.CONFIGS["HEIGHT_BIAS"]
+        self.FILE_MODE = self.CONFIGS["FILE_MODE"]
+        self.PLACEHOLDER_TEXT = self.CONFIGS["PLACEHOLDER_TEXT"]
+
+        # Loading all items in memory
+        client = MongoClient("mongodb://localhost:27017")
+
+        db = client.meme_data
+        self.collection = db.meme_data
+
+        self.num_items = self.collection.count_documents({})
 
     def shuffle(self) -> dict[str, typing.Any]:
         """
         return 3 image paths with their associated id,
         name and template_location
         """
+        # TODO: Load 3 random images from the MongoDB database
         res = {}  # key: "A","B" or "C" value: template element
-        temp_ids = random.Random().sample(population=range(0, self.num_items), k=3)
 
-        for ind, temp_id in enumerate(temp_ids):
-            res[self.OPTIONS[ind]] = self.items[temp_id]
+        for ind, sample in enumerate(self.collection.aggregate([{"$sample": {"size": len(self.OPTIONS)}}])):
+            res[self.OPTIONS[ind]] = sample
 
         return res
 
@@ -66,7 +87,7 @@ class ImageShuffler:
         """
         votes = 0
         for image in images:
-            if image.width > image.height * 1.25:
+            if image.width > image.height * self.HEIGHT_BIAS:
                 votes -= 1
             elif image.height > image.width:
                 votes += 1
@@ -79,6 +100,7 @@ class ImageShuffler:
         :return: Dict containing the dimensions of the final image and the start location of each image
         """
         image_coordinates = [(0, 0)]  # x, y
+        assert len(images) > 0, "Please provide at least one image"
         max_height = images[0].height
         max_width = images[0].width
         for ind in range(1, len(self.OPTIONS)):
@@ -184,7 +206,7 @@ class ImageShuffler:
             images.append(
                 Image.open(
                     os.path.join(
-                        self.TEMPLATE_DIR, cur_rotation[opt]["template-location"]
+                        self.TEMPLATE_DIRECTORY, cur_rotation[opt]["template-location"]
                     )
                 )
             )
@@ -228,7 +250,13 @@ class ImageShuffler:
                 outline=self.RECTANGLE_OUTLINE_COLOR,
             )
             ImageGenerator.add_text(
-                draw, self.OPTIONS[i], x, y, self.RECTANGLE_SIZE, self.RECTANGLE_SIZE
+                draw,
+                self.OPTIONS[i],
+                x,
+                y,
+                self.RECTANGLE_SIZE,
+                self.RECTANGLE_SIZE,
+                config=self.CONFIGS,
             )
 
         # Add the guide text to the image
@@ -242,6 +270,7 @@ class ImageShuffler:
                     elem_y + image_coordinates[i][1],
                     elem_with,
                     elem_height,
+                    self.CONFIGS,
                 )
 
         # Save the stitched image
@@ -265,22 +294,19 @@ class ImageGenerator:
     for which text should be added
     """
 
-    OUTPUT_DIR = "./created_memes"
-    TEMPLATE_DIR = "./meme_templates"
-    DATA_LOCATION = "./meme_data.json"
-
-    FONT_MAX_SIZE = 36
-    FONT_MIN_SIZE = 9
-    FONT_STOKE_WIDTH = 2
-    FONT_STROKE_FILL = "#000"
-    FONT_PATH = "COMIC.TTF"
-    FILE_MODE = "RGB"
+    # prevent loading the settings for each instance
+    CONFIGS = None
 
     def __init__(
-        self, _id, name, text_locations: list, template_location, username: str
+        self,
+        _id,
+        name,
+        text_locations: list,
+        template_location,
+        username: str,
+        config_file: str,
     ):
         """
-
         :param _id: meme template id
         :param name: The name of the meme
         :param text_locations: List of all locations of the text (x, y, width, height)
@@ -293,9 +319,40 @@ class ImageGenerator:
         self.template_location = template_location
         self.username = username
 
+        # Load the config file
+        if ImageGenerator.CONFIGS is None:
+            with open(config_file, "r") as f:
+                self.CONFIGS = json.load(f)
+
+        self.ASSETS_DIRECTORY: str = self.CONFIGS["ASSETS_DIRECTORY"]
+        self.OUTPUT_DIRECTORY: str = os.path.join(
+            self.ASSETS_DIRECTORY, self.CONFIGS["CREATED_DIRECTORY"]
+        )
+        self.TEMPLATE_DIRECTORY: str = os.path.join(
+            self.ASSETS_DIRECTORY, self.CONFIGS["TEMPLATE_DIRECTORY"]
+        )
+        self.DATA_LOCATION: str = os.path.join(
+            self.ASSETS_DIRECTORY, self.CONFIGS["DATA_LOCATION"]
+        )
+        self.FONTS_DIRECTORY: str = os.path.join(
+            self.ASSETS_DIRECTORY, self.CONFIGS["FONTS_DIRECTORY"]
+        )
+
+        self.FONT_MAX_SIZE: int = self.CONFIGS["FONT_MAX_SIZE"]
+        self.FONT_MIN_SIZE: int = self.CONFIGS["FONT_MIN_SIZE"]
+        self.FONT_STROKE_WIDTH: int = self.CONFIGS["FONT_STROKE_WIDTH"]
+        self.FONT_STROKE_FILL: str = self.CONFIGS["FONT_STROKE_FILL"]
+        self.FONT_LOCATION: str = os.path.join(
+            self.FONTS_DIRECTORY, self.CONFIGS["FONT_PATH"]
+        )
+        self.FILE_FORMAT: str = self.CONFIGS["CREATED_FILE_FORMAT"]
+        self.TEXT_BOX_WIDTH_RATIO: float = self.CONFIGS["TEXT_BOX_WIDTH_RATIO"]
+        self.TEXT_BOX_HEIGHT_RATIO: float = self.CONFIGS["TEXT_BOX_HEIGHT_RATIO"]
+        self.FILE_MODE = self.CONFIGS["FILE_MODE"]
+
         try:
             self.image = Image.open(
-                os.path.join(self.TEMPLATE_DIR, self.template_location)
+                os.path.join(str(self.TEMPLATE_DIRECTORY), self.template_location)
             )
         except FileNotFoundError:
             print("Could not find the file at location: ", self.template_location)
@@ -305,9 +362,10 @@ class ImageGenerator:
         :return: Path to where the finished image should be saved
         """
         # create the directory if needed
-        while not os.path.exists(self.OUTPUT_DIR):
-            os.makedirs(self.OUTPUT_DIR)
-        return f"{os.path.join(self.OUTPUT_DIR, self.id)}_{self.username}.jpeg"
+        while not os.path.exists(self.OUTPUT_DIRECTORY):
+            os.makedirs(self.OUTPUT_DIRECTORY)
+
+        return os.path.join(self.OUTPUT_DIRECTORY, self.FILE_FORMAT % self.username)
 
     def add_all_text(self, texts: list[str]) -> str:
         """
@@ -325,7 +383,7 @@ class ImageGenerator:
             text = texts[i]
             x, y, width, height = self.text_locations[i].values()
 
-            self.add_text(draw, text, x, y, width, height)
+            self.add_text(draw, text, x, y, width, height, self.CONFIGS)
 
         # Convert to rgb to prevent RGBA mode errors
         if self.image.format == "PNG":
@@ -337,7 +395,13 @@ class ImageGenerator:
 
     @staticmethod
     def add_text(
-        draw: ImageDraw, quote: str, x: int, y: int, width: int, height: int
+        draw: ImageDraw,
+        quote: str,
+        x: int,
+        y: int,
+        width: int,
+        height: int,
+        config: dict,
     ) -> None:
         """
         Adds text to the ImageDraw object that fits the text box
@@ -347,16 +411,23 @@ class ImageGenerator:
         :param y: y-coordinate of text location
         :param width: width of the text block
         :param height: height of the text block
+        :param config: the configuration dictionary
         :return: None (Changed draw object in place)
         """
-        text_width = width * 0.9
-        text_max_height = height * 0.9
+        text_width = width * config["TEXT_BOX_WIDTH_RATIO"]
+        text_max_height = height * config["TEXT_BOX_HEIGHT_RATIO"]
 
         # Reduce the font size until it fits the box
-        size = ImageGenerator.FONT_MAX_SIZE
-        while size >= ImageGenerator.FONT_MIN_SIZE:
+        size = config["FONT_MAX_SIZE"]
+        while size >= config["FONT_MIN_SIZE"]:
             font = ImageFont.truetype(
-                ImageGenerator.FONT_PATH, size, layout_engine=ImageFont.Layout.BASIC
+                os.path.join(
+                    config["ASSETS_DIRECTORY"],
+                    config["FONTS_DIRECTORY"],
+                    config["FONT_PATH"],
+                ),
+                size,
+                layout_engine=ImageFont.Layout.BASIC,
             )
             lines = []
             line = ""
@@ -392,36 +463,23 @@ class ImageGenerator:
             quote,
             font=font,
             align="center",
-            stroke_width=ImageGenerator.FONT_STOKE_WIDTH,
-            stroke_fill=ImageGenerator.FONT_STROKE_FILL,
+            stroke_width=config["FONT_STROKE_WIDTH"],
+            stroke_fill=config["FONT_STROKE_FILL"],
         )
-
-    @staticmethod
-    def factory(template_id: str, username: str):
-        """
-        Convenience method
-        :param template_id: ID of the template
-        :param username: identifier of the person creating the meme
-        :return:
-        """
-        # Given the id returns a Generator Object
-        with open(ImageGenerator.DATA_LOCATION) as f:
-            file_data = json.load(f)
-
-            try:
-                img_id, name, text_locations, template_location = file_data["items"][
-                    int(template_id)
-                ].values()
-                return ImageGenerator(
-                    img_id, name, text_locations, template_location, username
-                )
-            except Exception as e:
-                print(str(e))
-                return None
 
 
 if __name__ == "__main__":
-    shuffler = ImageShuffler()
+    # configure environment and staging
+    load_dotenv()
+    TOKEN = os.getenv("TELEGRAM_TOKEN")
+
+    ENVIRONMENT = os.getenv("ENVIRONMENT")
+    LANGUAGE = os.getenv("LANGUAGE")
+    LANGUAGE_FILE_FORMAT = os.getenv("LANGUAGE_FILE_FORMAT")
+    CONFIG_DIR = os.getenv("CONFIG_DIRECTORY")
+
+    CONFIG_LOCATION = os.path.join(CONFIG_DIR, os.getenv("CONFIG_FILE_FORMAT") % ENVIRONMENT)
+    shuffler = ImageShuffler(CONFIG_LOCATION)
     rotation = (
         shuffler.shuffle()
     )  # can generate a Gen from the date returned from here to avoid

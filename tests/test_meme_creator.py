@@ -1,10 +1,10 @@
-from meme_creator import ImageGenerator, ImageShuffler
+from src.meme_creator import ImageGenerator, ImageShuffler
 from PIL import Image
 import pytest
 
-TEST_IMAGE_ONE = "./meme_templates/meme1.jpeg"
-TEST_IMAGE_TWO = "./meme_templates/meme2.jpeg"
-TEST_IMAGE_THREE = "./meme_templates/meme3.jpeg"
+TEST_IMAGE_ONE = "./templates_memes/meme1.jpeg"
+TEST_IMAGE_TWO = "./templates_memes/meme2.jpeg"
+TEST_IMAGE_THREE = "./templates_memes/meme3.jpeg"
 
 TEST_DATA = {
     "id": "0",

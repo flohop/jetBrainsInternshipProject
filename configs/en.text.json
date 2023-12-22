@@ -8,5 +8,5 @@
   "START_HELP_TEXT": "Intro text to show what the app can do",
   "UNKNOWN_COMMAND": "Sorry, I didn't understand that command.",
   "HELLO_MESSAGE": "Hello %s \uD83D\uDC4B ",
-  "PLACEHOLDER_TEXT": "TEXT"
+  "PLACEHOLDER_TEXT": "\"TEXT\""
 }
