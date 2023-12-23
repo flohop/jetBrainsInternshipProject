@@ -1,5 +1,8 @@
 {
   "ASSETS_DIRECTORY": "./assets",
+  "MONGO_SERVER_URL": "mongodb://localhost:27017",
+  "DATABASE_NAME": "meme_data",
+  "COLLECTION_NAME": "meme_data",
   "FONTS_DIRECTORY": "./fonts",
   "CONFIGS_DIRECTORY": "./configs",
   "STITCH_DIRECTORY": "stitched_memes",

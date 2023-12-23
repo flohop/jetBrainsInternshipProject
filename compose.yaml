@@ -1,0 +1,8 @@
+services:
+  bot:
+    build: .
+    container_name: telegram_bot
+    ports:
+      - "8888:80"
+    volumes:
+      - ${PWD}/.env

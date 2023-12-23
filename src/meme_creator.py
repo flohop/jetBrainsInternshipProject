@@ -1,6 +1,5 @@
 import json
 import os.path
-import random
 import typing
 
 from dotenv import load_dotenv
@@ -59,11 +58,17 @@ class ImageShuffler:
         self.FILE_MODE = self.CONFIGS["FILE_MODE"]
         self.PLACEHOLDER_TEXT = self.CONFIGS["PLACEHOLDER_TEXT"]
 
-        # Loading all items in memory
-        client = MongoClient("mongodb://localhost:27017")
+        mongo_server_url = os.getenv("MONGO_SERVER_URL")
+        database_name = self.CONFIGS["DATABASE_NAME"]
+        collection_name = self.CONFIGS["COLLECTION_NAME"]
 
-        db = client.meme_data
-        self.collection = db.meme_data
+        load_dotenv()
+
+        # Loading all items in memory
+        client = MongoClient(mongo_server_url)
+
+        db = client[database_name]
+        self.collection = db[collection_name]
 
         self.num_items = self.collection.count_documents({})
 
@@ -72,7 +77,6 @@ class ImageShuffler:
         return 3 image paths with their associated id,
         name and template_location
         """
-        # TODO: Load 3 random images from the MongoDB database
         res = {}  # key: "A","B" or "C" value: template element
 
         for ind, sample in enumerate(self.collection.aggregate([{"$sample": {"size": len(self.OPTIONS)}}])):
@@ -82,6 +86,7 @@ class ImageShuffler:
 
     def _images_in_row(self, images: list[Image]) -> bool:
         """
+        Function is biased towards placing the images in a row
         :param images: List of the images that get stitched together
         :return: True if the images should be stitched in a row, false otherwise
         """
@@ -121,13 +126,13 @@ class ImageShuffler:
         }
 
     def _scale_images(
-        self,
-        images: list[Image],
-        image_coordinates: list[tuple],
-        in_row: bool,
-        max_height: int,
-        max_width: int,
-        cur_rotation,
+            self,
+            images: list[Image],
+            image_coordinates: list[tuple],
+            in_row: bool,
+            max_height: int,
+            max_width: int,
+            cur_rotation,
     ):
         """
         Updates the parameter cur_rotation in place
@@ -147,34 +152,23 @@ class ImageShuffler:
         for i in range(0, len(self.OPTIONS)):
             img = images[i]
 
-            if in_row:
-                scale_ratio = max_height / img.height
-            else:
-                scale_ratio = max_width / img.width
+            scale_ratio = max_height / img.height if in_row else max_width / img.width
 
             new_size = (int(img.width * scale_ratio), int(img.height * scale_ratio))
             images[i] = img.resize(new_size)
 
             # Adjust the coordinates and text box location
-            # x value is:
-            # prev coordinate +
-            if i > 0:
-                if in_row:
-                    new_x = int(
-                        image_coordinates[i - 1][0]
-                        + images[i - 1].width * prev_scale_ratio[i]
-                    )
-                    image_coordinates[i] = (new_x, image_coordinates[i][1])
-                else:
-                    new_y = int(
-                        image_coordinates[i - 1][1]
-                        + images[i - 1].height * prev_scale_ratio[i]
-                    )
-                    image_coordinates[i] = (image_coordinates[i][0], new_y)
+            if i == 0:
+                continue
+
+            new_val = int(image_coordinates[i - 1][0 if in_row else 1] + (
+                images[i - 1].width if in_row else images[i - 1].height) * prev_scale_ratio[i])
+
+            image_coordinates[i] = (new_val, image_coordinates[i][1]) if in_row else (image_coordinates[i][0], new_val)
 
             # Adjust the help text
             for ctr, j in enumerate(
-                range(len(cur_rotation[self.OPTIONS[i]]["text-locations"]))
+                    range(len(cur_rotation[self.OPTIONS[i]]["text-locations"]))
             ):
                 x_co, y_co, w, h = cur_rotation[self.OPTIONS[i]]["text-locations"][
                     j
@@ -218,6 +212,8 @@ class ImageShuffler:
             images, in_row
         ).values()
 
+        assert len(image_coordinates) > 0, "There are no coordinates for the image"
+
         # Scale images to avoid black space
         self._scale_images(
             images, image_coordinates, in_row, max_height, max_width, cur_rotation
@@ -228,9 +224,10 @@ class ImageShuffler:
             width = image_coordinates[-1][0] + images[-1].width
             stitched_image = Image.new(self.FILE_MODE, (width, max_height))
         else:
+            height = image_coordinates[-1][1] + images[-1].height
             stitched_image = Image.new(
                 self.FILE_MODE,
-                (max_width, image_coordinates[-1][1] + images[-1].height),
+                (max_width, height),
             )
 
         # Paste the individual images onto the stitched image
@@ -298,13 +295,13 @@ class ImageGenerator:
     CONFIGS = None
 
     def __init__(
-        self,
-        _id,
-        name,
-        text_locations: list,
-        template_location,
-        username: str,
-        config_file: str,
+            self,
+            _id,
+            name,
+            text_locations: list,
+            template_location,
+            username: str,
+            config_file: str,
     ):
         """
         :param _id: meme template id
@@ -387,21 +384,20 @@ class ImageGenerator:
 
         # Convert to rgb to prevent RGBA mode errors
         if self.image.format == "PNG":
-            rgb_img = self.image.convert(self.FILE_MODE)
-            rgb_img.save(self.get_file_path())
-        else:
-            self.image.save(self.get_file_path())
+            self.image = self.image.convert(self.FILE_MODE)
+        self.image.save(self.get_file_path())
         return self.get_file_path()
+
 
     @staticmethod
     def add_text(
-        draw: ImageDraw,
-        quote: str,
-        x: int,
-        y: int,
-        width: int,
-        height: int,
-        config: dict,
+            draw: ImageDraw,
+            quote: str,
+            x: int,
+            y: int,
+            width: int,
+            height: int,
+            config: dict,
     ) -> None:
         """
         Adds text to the ImageDraw object that fits the text box
