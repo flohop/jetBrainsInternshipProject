@@ -4,11 +4,11 @@ from src.meme_creator import ImageGenerator, ImageShuffler
 from PIL import Image
 import pytest
 
-TEST_IMAGE_ONE = "../assets/templates_memes/meme1.jpeg"
-TEST_IMAGE_TWO = "../assets/templates_memes/meme2.jpeg"
-TEST_IMAGE_THREE = "../assets/templates_memes/meme3.jpeg"
+TEST_IMAGE_ONE = "./assets/templates_memes/meme1.jpeg"
+TEST_IMAGE_TWO = "./assets/templates_memes/meme2.jpeg"
+TEST_IMAGE_THREE = "./assets/templates_memes/meme3.jpeg"
 
-TEST_CONFIG_LOCATION = "../configs/dev.settings.json"
+TEST_CONFIG_LOCATION = "./configs/dev.settings.json"
 
 TEST_DATA = {
     "id": "0",
