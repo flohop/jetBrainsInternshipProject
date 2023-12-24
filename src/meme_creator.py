@@ -158,34 +158,21 @@ class ImageShuffler:
             images[i] = img.resize(new_size)
 
             # Adjust the coordinates and text box location
-            if i == 0:
-                continue
+            if i > 0:
+                new_val = int(image_coordinates[i - 1][0 if in_row else 1] + (
+                    images[i - 1].width if in_row else images[i - 1].height) * prev_scale_ratio[i])
 
-            new_val = int(image_coordinates[i - 1][0 if in_row else 1] + (
-                images[i - 1].width if in_row else images[i - 1].height) * prev_scale_ratio[i])
-
-            image_coordinates[i] = (new_val, image_coordinates[i][1]) if in_row else (image_coordinates[i][0], new_val)
+                image_coordinates[i] = (new_val, image_coordinates[i][1]) if in_row else (
+                    image_coordinates[i][0], new_val)
 
             # Adjust the help text
-            for ctr, j in enumerate(
-                    range(len(cur_rotation[self.OPTIONS[i]]["text-locations"]))
-            ):
-                x_co, y_co, w, h = cur_rotation[self.OPTIONS[i]]["text-locations"][
-                    j
-                ].values()
-                cur_rotation[self.OPTIONS[i]]["text-locations"][ctr]["x"] = int(
-                    x_co * scale_ratio
-                )
-                cur_rotation[self.OPTIONS[i]]["text-locations"][ctr]["y"] = int(
-                    y_co * scale_ratio
-                )
+            for ctr, j in enumerate(range(len(cur_rotation[self.OPTIONS[i]]["text-locations"]))):
+                x_co, y_co, w, h = cur_rotation[self.OPTIONS[i]]["text-locations"][j].values()
+                cur_rotation[self.OPTIONS[i]]["text-locations"][ctr]["x"] = int(x_co * scale_ratio)
+                cur_rotation[self.OPTIONS[i]]["text-locations"][ctr]["y"] = int(y_co * scale_ratio)
 
-                cur_rotation[self.OPTIONS[i]]["text-locations"][ctr]["width"] = int(
-                    w * scale_ratio
-                )
-                cur_rotation[self.OPTIONS[i]]["text-locations"][ctr]["height"] = int(
-                    h * scale_ratio
-                )
+                cur_rotation[self.OPTIONS[i]]["text-locations"][ctr]["width"] = int(w * scale_ratio)
+                cur_rotation[self.OPTIONS[i]]["text-locations"][ctr]["height"] = int(h * scale_ratio)
 
     def generate_shuffle_image(self, user_id, cur_rotation) -> str:
         """
@@ -388,7 +375,6 @@ class ImageGenerator:
         self.image.save(self.get_file_path())
         return self.get_file_path()
 
-
     @staticmethod
     def add_text(
             draw: ImageDraw,
@@ -480,7 +466,8 @@ if __name__ == "__main__":
         shuffler.shuffle()
     )  # can generate a Gen from the date returned from here to avoid
 
-    shuffler.generate_shuffle_image("flohop", rotation)
+    print(shuffler.generate_shuffle_image("flohop", rotation))
+    print("Finished")
 
     # gen = ImageGenerator.factory("9", "flohop")
     # gen.add_all_text(["One", "Two"])
