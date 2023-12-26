@@ -1,0 +1,114 @@
+{
+  "TEST_IMAGE_ONE": "meme1.jpeg",
+  "TEST_IMAGE_TWO": "meme2.jpeg",
+  "TEST_IMAGE_THREE": "meme3.jpeg",
+  "TEST_DATA": [
+       {
+        "id": "0",
+        "name": "The Rock in a car",
+        "text-locations": [
+            {
+                "x": 280,
+                "y": 30,
+                "width": 210,
+                "height": 100
+            },
+            {
+                "x": 290,
+                "y": 228,
+                "width": 200,
+                "height": 90
+            }
+        ],
+        "template-location": "./meme1.jpeg"
+    },
+    {
+        "id": "1",
+        "name": "Left Exit 12 Off Ramp",
+        "text-locations": [
+            {
+                "x": 130,
+                "y": 64,
+                "width": 76,
+                "height": 104
+            },
+            {
+                "x": 280,
+                "y": 60,
+                "width": 100,
+                "height": 111
+            },
+            {
+                "x": 170,
+                "y": 344,
+                "width": 200,
+                "height": 72
+            }
+        ],
+        "template-location": "./meme2.jpeg"
+    },
+    {
+        "id": "2",
+        "name": "Gru's Plan",
+        "text-locations": [
+            {
+                "x": 216,
+                "y": 61,
+                "width": 123,
+                "height": 170
+            },
+            {
+                "x": 565,
+                "y": 59,
+                "width": 114,
+                "height": 161
+            },
+            {
+                "x": 216,
+                "y": 288,
+                "width": 115,
+                "height": 150
+            },
+            {
+                "x": 560,
+                "y": 279,
+                "width": 123,
+                "height": 170
+            }
+        ],
+        "template-location": "./meme3.jpeg"
+    }
+  ],
+ "TEST_DATA_SHUFFLE":  {
+    "A": {
+        "id": "0",
+        "name": "The Rock in a car",
+        "text-locations": [
+            {"x": 280, "y": 30, "width": 210, "height": 100},
+            {"x": 290, "y": 228, "width": 200, "height": 90}
+        ],
+        "template-location": "./meme1.jpeg"
+    },
+    "B": {
+        "id": "1",
+        "name": "Left Exit 12 Off Ramp",
+        "text-locations": [
+            {"x": 130, "y": 64, "width": 76, "height": 104},
+            {"x": 280, "y": 60, "width": 100, "height": 111},
+            {"x": 170, "y": 344, "width": 200, "height": 72}
+        ],
+        "template-location": "./meme2.jpeg"
+    },
+    "C": {
+        "id": "2",
+        "name": "Gru's Plan",
+        "text-locations": [
+            {"x": 216, "y": 61, "width": 123, "height": 170},
+            {"x": 565, "y": 59, "width": 114, "height": 161},
+            {"x": 216, "y": 288, "width": 115, "height": 150},
+            {"x": 560, "y": 279, "width": 123, "height": 170}
+        ],
+        "template-location": "./meme3.jpeg"
+    }
+  }
+}

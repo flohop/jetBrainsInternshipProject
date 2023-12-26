@@ -1,87 +1,74 @@
 import copy
+import json
+import os
 
+from unittest.mock import patch
 from src.meme_creator import ImageGenerator, ImageShuffler
 from PIL import Image
 import pytest
 
-TEST_IMAGE_ONE = "./assets/templates_memes/meme1.jpeg"
-TEST_IMAGE_TWO = "./assets/templates_memes/meme2.jpeg"
-TEST_IMAGE_THREE = "./assets/templates_memes/meme3.jpeg"
+DEV_CONFIG_LOCATION = "./configs/dev.settings.json"
+TEST_CONFIG_LOCATION = "./tests/mock_data.json"
 
-TEST_CONFIG_LOCATION = "./configs/dev.settings.json"
+with open(DEV_CONFIG_LOCATION) as f:
+    DEV_CONF = json.load(f)
 
-TEST_DATA = {
-    "id": "0",
-    "name": "The Rock in a car",
-    "text-locations": [
-        {"x": 280, "y": 30, "width": 210, "height": 100},
-        {"x": 290, "y": 228, "width": 200, "height": 90},
-    ],
-    "template-location": "./meme1.jpeg",
-}
-
-TEST_DATA_SHUFFLE = {
-    "A": {
-        "id": "0",
-        "name": "The Rock in a car",
-        "text-locations": [
-            {"x": 280, "y": 30, "width": 210, "height": 100},
-            {"x": 290, "y": 228, "width": 200, "height": 90},
-        ],
-        "template-location": "./meme1.jpeg",
-    },
-    "B": {
-        "id": "1",
-        "name": "Left Exit 12 Off Ramp",
-        "text-locations": [
-            {"x": 130, "y": 64, "width": 76, "height": 104},
-            {"x": 280, "y": 60, "width": 100, "height": 111},
-            {"x": 170, "y": 344, "width": 200, "height": 72},
-        ],
-        "template-location": "./meme2.jpeg",
-    },
-    "C": {
-        "id": "2",
-        "name": "Gru's Plan",
-        "text-locations": [
-            {"x": 216, "y": 61, "width": 123, "height": 170},
-            {"x": 565, "y": 59, "width": 114, "height": 161},
-            {"x": 216, "y": 288, "width": 115, "height": 150},
-            {"x": 560, "y": 279, "width": 123, "height": 170},
-        ],
-        "template-location": "./meme3.jpeg",
-    },
-}
+with open(TEST_CONFIG_LOCATION) as f:
+    TEST_CONF = json.load(f)
 
 
 @pytest.fixture()
-def image_shuffler():
-    image_shuffler = ImageShuffler(TEST_CONFIG_LOCATION)
-    image_shuffler.cur_rotation = TEST_DATA_SHUFFLE
+def test_data():
+    return TEST_CONF["TEST_DATA"]
+
+
+@pytest.fixture()
+def test_data_shuffle():
+    return TEST_CONF["TEST_DATA_SHUFFLE"]
+
+
+@pytest.fixture()
+def test_images():
+    assets_dir = DEV_CONF["ASSETS_DIRECTORY"]
+    template_dir = DEV_CONF["TEMPLATE_DIRECTORY"]
+
+    img_1 = TEST_CONF["TEST_IMAGE_ONE"]
+    img_2 = TEST_CONF["TEST_IMAGE_TWO"]
+    img_3 = TEST_CONF["TEST_IMAGE_THREE"]
+
+    res = []
+    for img in (img_1, img_2, img_3):
+        res.append(os.path.join(assets_dir, template_dir, img))
+
+    return res
+
+
+@pytest.fixture()
+@patch("pymongo.collection.Collection.count_documents")
+def image_shuffler(mock_count, test_data_shuffle):
+    mock_count.return_value = 3
+    image_shuffler = ImageShuffler(DEV_CONFIG_LOCATION)
+    image_shuffler.cur_rotation = test_data_shuffle
     return image_shuffler
 
 
 @pytest.fixture()
-def images():
+def images(test_images):
     """
     :return: 3 PIL image objects
     """
-    return [
-        Image.open(TEST_IMAGE_ONE),
-        Image.open(TEST_IMAGE_TWO),
-        Image.open(TEST_IMAGE_THREE),
-    ]
+    return [Image.open(img) for img in test_images]
 
 
 @pytest.fixture()
-def image_gen():
+def image_gen(test_data):
     return ImageGenerator(
-        TEST_DATA["id"],
-        TEST_DATA["name"],
-        TEST_DATA["text-locations"],
-        TEST_DATA["template-location"],
+        test_data["id"],
+        test_data["name"],
+        test_data["text-locations"],
+        test_data["template-location"],
         "test_user",
-        TEST_CONFIG_LOCATION
+        TEST_CONFIG_LOCATION,
     )
 
 
@@ -93,12 +80,15 @@ class TestImageShuffler:
         assert image_shuffler.num_items > 0
         assert image_shuffler.OPTIONS == ["A", "B", "C"]
 
-    def test_shuffle(self, image_shuffler):
+    @patch("pymongo.collection.Collection.aggregate")
+    def test_shuffle(self, aggregate_mock, image_shuffler, test_data):
         """
         Test that the shuffle method returns
         3 valid template data and sets the
         instance attribute
         """
+
+        aggregate_mock.return_value = test_data
         rotation = image_shuffler.shuffle()
 
         assert len(rotation) == 3
@@ -130,12 +120,12 @@ class TestImageShuffler:
         assert len(coo) == 3
         assert coo == [(0, 0), (0, 616), (0, 1115)]
 
-    def test_scale_image_in_row(self, image_shuffler, images):
+    def test_scale_image_in_row(self, image_shuffler, images, test_data_shuffle):
         image_coordinates = [(0, 0), (0, 616), (0, 1115)]
         max_height = 616
         max_width = 700
 
-        cur_shuffle = copy.deepcopy(TEST_DATA_SHUFFLE)
+        cur_shuffle = copy.deepcopy(test_data_shuffle)
 
         image_shuffler._scale_images(
             images, image_coordinates, True, max_height, max_width, cur_shuffle
