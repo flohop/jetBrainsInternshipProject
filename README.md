@@ -16,6 +16,8 @@ Simply pick one of the shuffled images, enter your desired texts and forward the
 
 - **Shuffle**: Creates an image where 3 random meme templates are resized to fit on one big image with any black space.
 - **Select**: Pick one of the shuffled images, enter your texts and get the finished meme
+- **Image arrangement**: Based on the width and height of the 3 images, they will either be stitched together horizontally
+or vertically
 
 ## Dev Tools
 <p align="center">
