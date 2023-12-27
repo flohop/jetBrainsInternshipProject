@@ -16,7 +16,7 @@ Simply pick one of the shuffled images, enter your desired texts and forward the
 
 - **Shuffle**: Creates an image where 3 random meme templates are resized to fit on one big image with any black space.
 - **Select**: Pick one of the shuffled images, enter your texts and get the finished meme
-  
+
 ## Dev Tools
 <p align="center">
   <img src="https://logos-world.net/wp-content/uploads/2021/02/Docker-Logo-2015-2017.png" alt="Docker" width="562.5" height="421.875">
@@ -27,7 +27,7 @@ Simply pick one of the shuffled images, enter your desired texts and forward the
 - **Docker**: To easily deploy and (in the future) scale the app, it is containerized using Docker and can be started
 using docker-compose
 - **pre-commit**: To ensure consistency in the codebase, pre-commit is used with: flake8, black, mypy
-- **GitHub Actions**: To test the code at each commit, a GitHub actions pipeline was created that executes pre-commit 
+- **GitHub Actions**: To test the code at each commit, a GitHub actions pipeline was created that executes pre-commit
 and runs all the tests
 
 ## Database
@@ -36,7 +36,7 @@ and runs all the tests
 For each meme template a document exists in the mongoDb collection. Since no relationships
 exist in these objects, I decided to use a NoSQL database to avoid the overhead of using an SQL database such as Postgresql.
 
-For each meme template, the x and y coordinates and the width and height of each 
+For each meme template, the x and y coordinates and the width and height of each
 textbox where text can be entered is saved.
 
 **Example document**
@@ -89,7 +89,7 @@ could be implemented:
  <details>
   <summary>Separate telegram interaction and image generator</summary>
 
-    The part of the code that generates the code could be moved out into a separate 
+    The part of the code that generates the code could be moved out into a separate
     docker container, to be able to scale it independetly without creating more instances of the
     container that interacts with the Telegram API.
  </details>
@@ -97,7 +97,7 @@ could be implemented:
  <details>
   <summary>More Tests</summary>
 
-    Tests for test ```ImageShuffler``` class have already been added. But 
+    Tests for test ```ImageShuffler``` class have already been added. But
     of course more tests for the other classes could be added to improve the project
  </details>
 
@@ -116,5 +116,5 @@ If you have any more questions, don't hesitate to write me either via Slack or e
 
 Also if you want to learn more about me, feel free to check out my website
 <h3 align="center">
-  <a href="https://www.flohop.com/" target="_blank">💻Personal Website💻</a> 
+  <a href="https://www.flohop.com/" target="_blank">💻Personal Website💻</a>
 </h3>
