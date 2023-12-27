@@ -1,7 +1,9 @@
 # Telegram Meme Bot
 
-<h2 style="text-align: center;"><a href="https://www.youtube.com/watch?v=99mFfEvAQO4">🎥Demo Video🎥</a></h2>
-<h2 style="text-align: center;"><a href="https://t.me/jetbrains_challenge_bot">🤖Try in Telegram🤖 (hosted on  a Raspberry Pi 4)</a></h2>
+
+<h3 align="center"><a href="https://www.youtube.com/watch?v=99mFfEvAQO4">🎥Demo Video🎥</a></h3>
+
+<h3 align="center"><a href="https://t.me/jetbrains_challenge_bot">🤖Try in Telegram (hosted on  a Raspberry Pi 4)🤖</a></h3>
 
 ## Project
 Currently, when you are chatting with your friends and want to send a meme
@@ -14,7 +16,7 @@ Simply pick one of the shuffled images, enter your desired texts and forward the
 
 - **Shuffle**: Creates an image where 3 random meme templates are resized to fit on one big image with any black space.
 - **Select**: Pick one of the shuffled images, enter your texts and get the finished meme
-- 
+  
 ## Dev Tools
 <p align="center">
   <img src="https://logos-world.net/wp-content/uploads/2021/02/Docker-Logo-2015-2017.png" alt="Docker" width="562.5" height="421.875">
