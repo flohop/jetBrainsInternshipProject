@@ -1,3 +1,6 @@
 /assets/created_memes/*
 .env
 /assets/stitched_memes/*
+.idea/workspace.xml
+.idea/tasks.xml
+__pycache__
