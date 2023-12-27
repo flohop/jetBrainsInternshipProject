@@ -26,4 +26,4 @@ repos:
     -   id: mypy
         additional_dependencies: [ types-all ]
         exclude: ^test
-        args: [--check-untyped-defs]
+        args: [--check-untyped-defs, --ignore-missing-imports]

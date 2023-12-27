@@ -6,17 +6,16 @@ import json
 import os
 import shlex
 
-import telegram.error  # type: ignore
-from dotenv import load_dotenv  # type: ignore
-from telegram import Update  # type: ignore
-from telegram.ext import ApplicationBuilder  # type: ignore
-from telegram.ext import CommandHandler  # type: ignore
-from telegram.ext import ContextTypes  # type: ignore
-from telegram.ext import filters  # type: ignore
-from telegram.ext import MessageHandler  # type: ignore
-
-from .meme_creator import ImageGenerator
-from .meme_creator import ImageShuffler
+import telegram.error
+from dotenv import load_dotenv
+from meme_creator import ImageGenerator
+from meme_creator import ImageShuffler
+from telegram import Update
+from telegram.ext import ApplicationBuilder
+from telegram.ext import CommandHandler
+from telegram.ext import ContextTypes
+from telegram.ext import filters
+from telegram.ext import MessageHandler
 
 # configure environment and staging
 load_dotenv()

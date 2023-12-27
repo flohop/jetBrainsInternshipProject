@@ -4,11 +4,11 @@ import json
 import os.path
 import typing
 
-from dotenv import load_dotenv  # type: ignore
+from dotenv import load_dotenv
 from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
-from pymongo import MongoClient  # type: ignore
+from pymongo import MongoClient
 
 
 def singleton(class_):
