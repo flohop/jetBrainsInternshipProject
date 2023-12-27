@@ -1,19 +1,22 @@
-import asyncio
-import json
-import copy
-import os
+from __future__ import annotations
 
+import asyncio
+import copy
+import json
+import os
 import shlex
-from meme_creator import ImageShuffler, ImageGenerator
-from telegram import Update
-from telegram.ext import (
-    ApplicationBuilder,
-    CommandHandler,
-    ContextTypes,
-    MessageHandler,
-    filters,
-)
-from dotenv import load_dotenv
+
+import telegram.error  # type: ignore
+from dotenv import load_dotenv  # type: ignore
+from telegram import Update  # type: ignore
+from telegram.ext import ApplicationBuilder  # type: ignore
+from telegram.ext import CommandHandler  # type: ignore
+from telegram.ext import ContextTypes  # type: ignore
+from telegram.ext import filters  # type: ignore
+from telegram.ext import MessageHandler  # type: ignore
+
+from src.meme_creator import ImageGenerator
+from src.meme_creator import ImageShuffler
 
 # configure environment and staging
 load_dotenv()
@@ -21,20 +24,21 @@ TOKEN = os.getenv("TELEGRAM_TOKEN")
 
 ENVIRONMENT = os.getenv("ENVIRONMENT")
 LANGUAGE = os.getenv("LANGUAGE")
-LANGUAGE_FILE_FORMAT = os.getenv("LANGUAGE_FILE_FORMAT")
-CONFIG_DIR = os.getenv("CONFIG_DIRECTORY")
+
+CONFIG_DIR = "./configs"
+CONFIG_FILE_FORMAT = "%s.settings.json"
+LANGUAGE_FILE_FORMAT = "%s.text.json"
 
 
-CONFIG_LOCATION = os.path.join(
-    CONFIG_DIR, os.getenv("CONFIG_FILE_FORMAT") % ENVIRONMENT
-)
+CONFIG_LOCATION = os.path.join(CONFIG_DIR, CONFIG_FILE_FORMAT % ENVIRONMENT)
+
 USER_TEXT_FILE_LOCATION = os.path.join(CONFIG_DIR, LANGUAGE_FILE_FORMAT % LANGUAGE)
 
 with open(USER_TEXT_FILE_LOCATION, "r") as file:
     TEXT_DATA = json.load(file)
 
 
-user_shuffle = {}  # key: username, value: current shuffle dict (db)
+user_shuffle: dict[str, dict] = {}  # key: username, value: current shuffle dict (db)
 
 shuffler = ImageShuffler(
     CONFIG_LOCATION
@@ -56,12 +60,13 @@ commands = {
 }
 
 
-def format_instruction(command: str, commands_dict: dict):
+def format_instruction(command: str, commands_dict: dict) -> str:
     """
     Helper function to format an instruction
     :param command: The name of the command
-    :param commands_dict: The commands dictionary containing all the infos about the command
-    :return:
+    :param commands_dict: The commands dictionary containing all
+    the infos about the command
+    :return: The formatted command string
     """
     desc, _, aliases = commands_dict[command]
 
@@ -119,6 +124,9 @@ async def shuffle(
     with open(image_path, "rb") as f:
         await update.message.reply_photo(photo=f)
 
+    # Delete the stitch image after it was sent
+    os.remove(image_path)
+
 
 async def select(update: Update, cur_shuffle: dict) -> None:
     """
@@ -167,6 +175,9 @@ async def select(update: Update, cur_shuffle: dict) -> None:
     with open(image_path, "rb") as f:
         await update.message.reply_photo(photo=f)
 
+    # Remove the created image after it was sent
+    os.remove(image_path)
+
 
 async def start(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     instr = f"""
@@ -191,4 +202,10 @@ if __name__ == "__main__":
     app.add_handler(MessageHandler(filters.COMMAND, unknown))
 
     print("Started telegram bot")
-    app.run_polling()
+    try:
+        app.run_polling()
+    except telegram.error.Conflict:
+        print(
+            "More than one instance of the telegram bot is running. "
+            "Make sure only one is running"
+        )

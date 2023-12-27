@@ -1,11 +1,15 @@
+from __future__ import annotations
+
 import copy
 import json
 import os
-
 from unittest.mock import patch
-from src.meme_creator import ImageGenerator, ImageShuffler
-from PIL import Image
+
 import pytest
+from PIL import Image
+
+from src.meme_creator import ImageGenerator
+from src.meme_creator import ImageShuffler
 
 DEV_CONFIG_LOCATION = "./configs/dev.settings.json"
 TEST_CONFIG_LOCATION = "./tests/mock_data.json"

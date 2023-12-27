@@ -1,11 +1,14 @@
+from __future__ import annotations
+
 import json
 import os.path
 import typing
 
-from dotenv import load_dotenv
-from pymongo import MongoClient
-
-from PIL import Image, ImageFont, ImageDraw
+from dotenv import load_dotenv  # type: ignore
+from PIL import Image
+from PIL import ImageDraw
+from PIL import ImageFont
+from pymongo import MongoClient  # type: ignore
 
 
 def singleton(class_):
@@ -86,7 +89,7 @@ class ImageShuffler:
 
         return res
 
-    def _images_in_row(self, images: list[Image]) -> bool:
+    def _images_in_row(self, images: list[Image.Image]) -> bool:
         """
         Function is biased towards placing the images in a row
         :param images: List of the images that get stitched together
@@ -100,17 +103,23 @@ class ImageShuffler:
                 votes += 1
         return votes > 0
 
-    def _determine_dimensions(self, images: list[Image], in_row) -> dict:
+    def _determine_dimensions(self, images: list[Image.Image], in_row) -> dict:
         """
         :param images: List of images
         :param in_row: Determine of the images should be stitched in a row
-        :return: Dict containing the dimensions of the final image and the start location of each image
+        :return: Dict containing the dimensions of the final image
+        and the start location of each image
         """
         image_coordinates = [(0, 0)]  # x, y
         assert len(images) > 0, "Please provide at least one image"
+        if images[0] is None:
+            raise ValueError("Value can not be none")
         max_height = images[0].height
         max_width = images[0].width
         for ind in range(1, len(self.OPTIONS)):
+            if images[ind] is None:
+                raise ValueError("Value can not be none")
+
             if in_row:
                 x = image_coordinates[ind - 1][0] + images[ind - 1].width
                 y = 0
@@ -129,7 +138,7 @@ class ImageShuffler:
 
     def _scale_images(
         self,
-        images: list[Image],
+        images: list[Image.Image],
         image_coordinates: list[tuple],
         in_row: bool,
         max_height: int,
@@ -214,7 +223,8 @@ class ImageShuffler:
 
         in_row = self._images_in_row(images)
 
-        # Determine the width, height and start coordinates of the images of the stitched image
+        # Determine the width, height and start coordinates
+        # of the images of the stitched image
         max_width, max_height, image_coordinates = self._determine_dimensions(
             images, in_row
         ).values()
@@ -299,7 +309,7 @@ class ImageGenerator:
     """
 
     # prevent loading the settings for each instance
-    CONFIGS = None
+    CONFIGS: dict[typing.Any, typing.Any] | None = None
 
     def __init__(
         self,
@@ -326,33 +336,37 @@ class ImageGenerator:
         # Load the config file
         if ImageGenerator.CONFIGS is None:
             with open(config_file, "r") as f:
-                self.CONFIGS = json.load(f)
+                ImageGenerator.CONFIGS = json.load(f)
 
-        self.ASSETS_DIRECTORY: str = self.CONFIGS["ASSETS_DIRECTORY"]
+        self.ASSETS_DIRECTORY: str = ImageGenerator.CONFIGS["ASSETS_DIRECTORY"]
         self.OUTPUT_DIRECTORY: str = os.path.join(
-            self.ASSETS_DIRECTORY, self.CONFIGS["CREATED_DIRECTORY"]
+            self.ASSETS_DIRECTORY, ImageGenerator.CONFIGS["CREATED_DIRECTORY"]
         )
         self.TEMPLATE_DIRECTORY: str = os.path.join(
-            self.ASSETS_DIRECTORY, self.CONFIGS["TEMPLATE_DIRECTORY"]
+            self.ASSETS_DIRECTORY, ImageGenerator.CONFIGS["TEMPLATE_DIRECTORY"]
         )
         self.DATA_LOCATION: str = os.path.join(
-            self.ASSETS_DIRECTORY, self.CONFIGS["DATA_LOCATION"]
+            self.ASSETS_DIRECTORY, ImageGenerator.CONFIGS["DATA_LOCATION"]
         )
         self.FONTS_DIRECTORY: str = os.path.join(
-            self.ASSETS_DIRECTORY, self.CONFIGS["FONTS_DIRECTORY"]
+            self.ASSETS_DIRECTORY, ImageGenerator.CONFIGS["FONTS_DIRECTORY"]
         )
 
-        self.FONT_MAX_SIZE: int = self.CONFIGS["FONT_MAX_SIZE"]
-        self.FONT_MIN_SIZE: int = self.CONFIGS["FONT_MIN_SIZE"]
-        self.FONT_STROKE_WIDTH: int = self.CONFIGS["FONT_STROKE_WIDTH"]
-        self.FONT_STROKE_FILL: str = self.CONFIGS["FONT_STROKE_FILL"]
+        self.FONT_MAX_SIZE: int = ImageGenerator.CONFIGS["FONT_MAX_SIZE"]
+        self.FONT_MIN_SIZE: int = ImageGenerator.CONFIGS["FONT_MIN_SIZE"]
+        self.FONT_STROKE_WIDTH: int = ImageGenerator.CONFIGS["FONT_STROKE_WIDTH"]
+        self.FONT_STROKE_FILL: str = ImageGenerator.CONFIGS["FONT_STROKE_FILL"]
         self.FONT_LOCATION: str = os.path.join(
-            self.FONTS_DIRECTORY, self.CONFIGS["FONT_PATH"]
+            self.FONTS_DIRECTORY, ImageGenerator.CONFIGS["FONT_PATH"]
         )
-        self.FILE_FORMAT: str = self.CONFIGS["CREATED_FILE_FORMAT"]
-        self.TEXT_BOX_WIDTH_RATIO: float = self.CONFIGS["TEXT_BOX_WIDTH_RATIO"]
-        self.TEXT_BOX_HEIGHT_RATIO: float = self.CONFIGS["TEXT_BOX_HEIGHT_RATIO"]
-        self.FILE_MODE = self.CONFIGS["FILE_MODE"]
+        self.FILE_FORMAT: str = ImageGenerator.CONFIGS["CREATED_FILE_FORMAT"]
+        self.TEXT_BOX_WIDTH_RATIO: float = ImageGenerator.CONFIGS[
+            "TEXT_BOX_WIDTH_RATIO"
+        ]
+        self.TEXT_BOX_HEIGHT_RATIO: float = ImageGenerator.CONFIGS[
+            "TEXT_BOX_HEIGHT_RATIO"
+        ]
+        self.FILE_MODE = ImageGenerator.CONFIGS["FILE_MODE"]
 
         try:
             self.image = Image.open(
@@ -387,7 +401,7 @@ class ImageGenerator:
             text = texts[i]
             x, y, width, height = self.text_locations[i].values()
 
-            self.add_text(draw, text, x, y, width, height, self.CONFIGS)
+            self.add_text(draw, text, x, y, width, height, ImageGenerator.CONFIGS)
 
         # Convert to rgb to prevent RGBA mode errors
         if self.image.format == "PNG":
@@ -397,13 +411,13 @@ class ImageGenerator:
 
     @staticmethod
     def add_text(
-        draw: ImageDraw,
+        draw: ImageDraw.ImageDraw,
         quote: str,
         x: int,
         y: int,
         width: int,
         height: int,
-        config: dict,
+        config: dict[typing.Any, typing.Any] | None,
     ) -> None:
         """
         Adds text to the ImageDraw object that fits the text box
@@ -416,6 +430,9 @@ class ImageGenerator:
         :param config: the configuration dictionary
         :return: None (Changed draw object in place)
         """
+        if config is None:
+            raise ValueError("Please provide a valid configuration dictionary")
+
         text_width = width * config["TEXT_BOX_WIDTH_RATIO"]
         text_max_height = height * config["TEXT_BOX_HEIGHT_RATIO"]
 
@@ -470,31 +487,23 @@ class ImageGenerator:
         )
 
 
-if __name__ == "__main__":
-    # configure environment and staging
-    load_dotenv()
-    TOKEN = os.getenv("TELEGRAM_TOKEN")
+# if __name__ == "__main__":
+# configure environment and staging
+# load_dotenv()
+# TOKEN = os.getenv("TELEGRAM_TOKEN")
 
-    ENVIRONMENT = os.getenv("ENVIRONMENT")
-    LANGUAGE = os.getenv("LANGUAGE")
-    LANGUAGE_FILE_FORMAT = os.getenv("LANGUAGE_FILE_FORMAT")
-    CONFIG_DIR = os.getenv("CONFIG_DIRECTORY")
+# ENVIRONMENT = os.getenv("ENVIRONMENT")
+# LANGUAGE = os.getenv("LANGUAGE")
+# LANGUAGE_FILE_FORMAT = os.getenv("LANGUAGE_FILE_FORMAT")
+# CONFIG_DIR = os.getenv("CONFIG_DIRECTORY")
 
-    CONFIG_LOCATION = os.path.join(
-        CONFIG_DIR, os.getenv("CONFIG_FILE_FORMAT") % ENVIRONMENT
-    )
-    shuffler = ImageShuffler(CONFIG_LOCATION)
-    rotation = (
-        shuffler.shuffle()
-    )  # can generate a Gen from the date returned from here to avoid
+# CONFIG_LOCATION = os.path.join(
+#    CONFIG_DIR, os.getenv("CONFIG_FILE_FORMAT") % ENVIRONMENT
+# )
+# shuffler = ImageShuffler(CONFIG_LOCATION)
+# rotation = (
+#    shuffler.shuffle()
+# )  # can generate a Gen from the date returned from here to avoid
 
-    print(shuffler.generate_shuffle_image("flohop", rotation))
-    print("Finished")
-
-    # gen = ImageGenerator.factory("9", "flohop")
-    # gen.add_all_text(["One", "Two"])
-
-    # print(shuffler.generate_shuffle_image("flohop"))
-    # item = shuffler.shuffle()["A"]
-    # gen = ImageGenerator(item["id"], item["name"], item["text-locations"], item["template-location"], "flohop")
-    # print(gen.add_all_text(["Text One", "Text Two"]))
+# print(shuffler.generate_shuffle_image("flohop", rotation))
+# print("Finished")
