@@ -20,7 +20,9 @@ Simply pick one of the shuffled images, enter your desired texts and forward the
 ## Dev Tools
 <p align="center">
   <img src="https://logos-world.net/wp-content/uploads/2021/02/Docker-Logo-2015-2017.png" alt="Docker" width="562.5" height="421.875">
-<img src="https://pre-commit.com/logo.svg" alt="Pre-Commit" width="250" height="250">
+
+  
+<img src="https://pre-commit.com/logo.svg" alt="Pre-Commit" width="400" height="400">
 <img src="https://cdn.invicti.com/statics/img/drive/h2jfrvzrbyh1yff2n3wfu2hkqqps6x_uvqo.png" alt="MongoDB" width="500" height="250">
 </p>
 
