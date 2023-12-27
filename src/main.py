@@ -15,8 +15,8 @@ from telegram.ext import ContextTypes  # type: ignore
 from telegram.ext import filters  # type: ignore
 from telegram.ext import MessageHandler  # type: ignore
 
-from src.meme_creator import ImageGenerator
-from src.meme_creator import ImageShuffler
+from .meme_creator import ImageGenerator
+from .meme_creator import ImageShuffler
 
 # configure environment and staging
 load_dotenv()
