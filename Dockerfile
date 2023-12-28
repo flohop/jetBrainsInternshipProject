@@ -10,9 +10,7 @@ COPY . /telegram_bot
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Make port 80 available to the world outside this container
 EXPOSE 80
 
-# Define environment variable
 # Run main.py when the container launches
-CMD ["python", "src/main.py"]
+CMD ["python", "src/main.py",  "-c", "configs/dev.settings.json"]

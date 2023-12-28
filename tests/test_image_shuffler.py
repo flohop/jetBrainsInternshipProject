@@ -10,6 +10,7 @@ from PIL import Image
 
 from src.meme_creator import ImageGenerator
 from src.meme_creator import ImageShuffler
+from src.schemas import Settings
 
 DEV_CONFIG_LOCATION = "./configs/dev.settings.json"
 TEST_CONFIG_LOCATION = "./tests/mock_data.json"
@@ -19,6 +20,11 @@ with open(DEV_CONFIG_LOCATION) as f:
 
 with open(TEST_CONFIG_LOCATION) as f:
     TEST_CONF = json.load(f)
+
+
+@pytest.fixture()
+def settings() -> Settings:
+    return Settings.from_dict(DEV_CONF)
 
 
 @pytest.fixture()
@@ -32,26 +38,23 @@ def test_data_shuffle():
 
 
 @pytest.fixture()
-def test_images():
-    assets_dir = DEV_CONF["ASSETS_DIRECTORY"]
-    template_dir = DEV_CONF["TEMPLATE_DIRECTORY"]
-
+def test_images(settings):
     img_1 = TEST_CONF["TEST_IMAGE_ONE"]
     img_2 = TEST_CONF["TEST_IMAGE_TWO"]
     img_3 = TEST_CONF["TEST_IMAGE_THREE"]
 
     res = []
     for img in (img_1, img_2, img_3):
-        res.append(os.path.join(assets_dir, template_dir, img))
+        res.append(os.path.join(settings.get_template_directory(), img))
 
     return res
 
 
 @pytest.fixture()
 @patch("pymongo.collection.Collection.count_documents")
-def image_shuffler(mock_count, test_data_shuffle):
+def image_shuffler(mock_count, test_data_shuffle, settings):
     mock_count.return_value = 3
-    image_shuffler = ImageShuffler(DEV_CONFIG_LOCATION)
+    image_shuffler = ImageShuffler(settings)
     image_shuffler.cur_rotation = test_data_shuffle
     return image_shuffler
 
@@ -65,14 +68,14 @@ def images(test_images):
 
 
 @pytest.fixture()
-def image_gen(test_data):
+def image_gen(test_data, settings):
     return ImageGenerator(
         test_data["id"],
         test_data["name"],
         test_data["text-locations"],
         test_data["template-location"],
         "test_user",
-        TEST_CONFIG_LOCATION,
+        settings,
     )
 
 
@@ -82,7 +85,7 @@ class TestImageShuffler:
         Test that the object is initialized correctly
         """
         assert image_shuffler.num_items > 0
-        assert image_shuffler.OPTIONS == ["A", "B", "C"]
+        assert image_shuffler.settings.options == ["A", "B", "C"]
 
     @patch("pymongo.collection.Collection.aggregate")
     def test_shuffle(self, aggregate_mock, image_shuffler, test_data):

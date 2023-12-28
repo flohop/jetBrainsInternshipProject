@@ -5,6 +5,9 @@
     "assets_directory": {
       "type": "string"
     },
+    "language": {
+      "type": "string"
+    },
     "database_name": {
       "type": "string"
     },

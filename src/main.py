@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import asyncio
 import copy
 import json
@@ -7,10 +8,14 @@ import os
 import shlex
 
 import telegram.error
+from command_names import CommandNames
+from command_names import CommandNamesLiteral
 from dotenv import load_dotenv
 from meme_creator import ImageGenerator
 from meme_creator import ImageShuffler
-from schemas import TranslationText, Command, Settings
+from schemas import Command
+from schemas import Settings
+from schemas import TranslationText
 from telegram import Update
 from telegram.ext import ApplicationBuilder
 from telegram.ext import CommandHandler
@@ -18,57 +23,10 @@ from telegram.ext import ContextTypes
 from telegram.ext import filters
 from telegram.ext import MessageHandler
 
-# get all env variables and settings
-load_dotenv()
-TOKEN = os.getenv("TELEGRAM_TOKEN")
 
-ENVIRONMENT = os.getenv("ENVIRONMENT")
-LANGUAGE = os.getenv("LANGUAGE")
-
-CONFIG_DIR = "./configs"
-SETTINGS_FILE_FORMAT = "%s.settings.json"
-LANGUAGE_FILE_FORMAT = "%s.text.json"
-
-
-settings_location = os.path.join(CONFIG_DIR, SETTINGS_FILE_FORMAT % ENVIRONMENT)
-
-USER_TEXT_FILE_LOCATION = os.path.join(CONFIG_DIR, LANGUAGE_FILE_FORMAT % LANGUAGE)
-SETTINGS_FILE_LOCATION = os.path.join(CONFIG_DIR, SETTINGS_FILE_FORMAT % ENVIRONMENT)
-
-with open(USER_TEXT_FILE_LOCATION, "r") as file:
-    text_data: TranslationText = TranslationText.from_dict(json.load(file))
-
-with open(SETTINGS_FILE_LOCATION, "r") as file:
-    settings: Settings = Settings.from_dict(json.load(file))
-
-
-user_shuffle: dict[str, dict] = {}  # key: username, value: current shuffle dict (db)
-
-shuffler = ImageShuffler(
-    settings
-)  # Everyone uses the same shuffler (is stateless).
-
-commands = {
-    "shuffle": Command(
-        description=text_data.shuffle_help_text,
-        callback=lambda update, _: shuffle(update, shuffler, user_shuffle),  # function
-        aliases=["s"],
-    ),
-    "A": Command(
-        description=text_data.a_help_text,
-        callback=lambda update, _: select(update, user_shuffle),
-        aliases=[x for x in shuffler.settings.options if x != "A"]
-        + [x.lower() for x in shuffler.settings.options],
-    ),
-    "start": Command(
-        description=text_data.start_help_text,
-        callback=lambda update, _: start(update, _),
-        aliases=[],
-    ),
-}
-
-
-def format_instruction(command_name: str, commands_dict: dict[str, Command]) -> str:
+def format_instruction(
+    command_name: CommandNamesLiteral, commands_dict: dict[CommandNames, Command]
+) -> str:
     """
     Helper function to format an instruction
     :param command_name: The name of the command
@@ -82,18 +40,24 @@ def format_instruction(command_name: str, commands_dict: dict[str, Command]) -> 
     if cur_command.aliases:
         alias_vals = "(" + " ".join("/" + elem for elem in cur_command.aliases) + ")"
 
-    return f"/{command_name} {alias_vals} {cur_command.description}"
+    return f"/{command_name.value} {alias_vals} {cur_command.description}"
 
 
-# Message
-INSTRUCTIONS = f"""
-    1. {format_instruction(list(commands.keys())[0], commands)}
-    2. {format_instruction(list(commands.keys())[1], commands)}
+def get_instructions(all_commands: dict[CommandNamesLiteral, Command]):
+    return f"""
+    1. {format_instruction(CommandNames.SHUFFLE, all_commands)}
+    2. {format_instruction(CommandNames.PICK, all_commands)}
 """
 
 
-def get_num_help_text(command: str, i: int) -> str:
-    return text_data.wrong_num % (i, f" /{command} {' '.join([text_data.placeholder_text] * i)}")
+# Message
+
+
+def get_num_help_text(command_name: CommandNamesLiteral, i: int) -> str:
+    return text_data.wrong_num % (
+        i,
+        f" /{command_name} {' '.join([text_data.placeholder_text] * i)}",
+    )
 
 
 async def shuffle(
@@ -138,11 +102,15 @@ async def select(update: Update, cur_shuffle: dict) -> None:
         texts = shlex.split(incoming_message.text[2:])
 
     except (IndexError, ValueError, AttributeError):
-        await incoming_message.reply_text(text_data.wrong_format % INSTRUCTIONS)
+        await incoming_message.reply_text(
+            text_data.wrong_format % get_instructions(commands)
+        )
         return
 
     if update.effective_user.id not in cur_shuffle:
-        await incoming_message.reply_text(text_data.no_shuffle % f"/{list(commands.keys())[0]}")
+        await incoming_message.reply_text(
+            text_data.no_shuffle % f"/{CommandNames.SHUFFLE.value}"
+        )
         return
 
     # Get the template the user selected
@@ -175,22 +143,81 @@ async def select(update: Update, cur_shuffle: dict) -> None:
 async def start(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     instr = f"""
     {text_data.hello_message % update.effective_user.first_name}
-    {INSTRUCTIONS}"""
+    {get_instructions(commands)}"""
     await update.message.reply_html(instr)
 
 
 async def unknown(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(
-        chat_id=update.effective_chat.id, text=text_data.unknown_command + "\n" + INSTRUCTIONS
+        chat_id=update.effective_chat.id,
+        text=text_data.unknown_command + "\n" + get_instructions(commands),
     )
 
 
 if __name__ == "__main__":
+    # Get config file path from user
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-c",
+        "--config",
+        help="The path to the config file",
+        default="./configs/dev.settings.json",
+    )
+
+    args = parser.parse_args()
+
+    load_dotenv()
+    TOKEN = os.getenv("TELEGRAM_TOKEN")
+
+    # Load settings
+    with open(args.config, "r") as file:
+        settings: Settings = Settings.from_dict(json.load(file))
+
+    # Load language
+    USER_TEXT_FILE_LOCATION = os.path.join(
+        settings.configs_directory, settings.language_file_format % settings.language
+    )
+
+    with open(USER_TEXT_FILE_LOCATION, "r") as file:
+        text_data: TranslationText = TranslationText.from_dict(json.load(file))
+
+    user_shuffle: dict[
+        str, dict
+    ] = {}  # key: username, value: current shuffle dict (db)
+
+    # get all env variables and settings
+    shuffler = ImageShuffler(
+        settings
+    )  # Everyone uses the same shuffler (is stateless).
+
+    commands = {
+        CommandNames.SHUFFLE: Command(
+            description=text_data.shuffle_help_text,
+            callback=lambda update, _: shuffle(
+                update, shuffler, user_shuffle
+            ),  # function
+            aliases=[CommandNames.SHUFFLE.value.lower()],
+        ),
+        CommandNames.PICK: Command(
+            description=text_data.pick_help_text,
+            callback=lambda update, _: select(update, user_shuffle),
+            aliases=[x for x in shuffler.settings.options if x != CommandNames.PICK.value],
+        ),
+        CommandNames.START: Command(
+            description=text_data.start_help_text,
+            callback=lambda update, _: start(update, _),
+            aliases=[],
+        ),
+    }
+
+    # Start the telegram bot
     app = ApplicationBuilder().token(TOKEN).build()
 
     # register all commands
     for cmd_name, command in commands.items():
-        app.add_handler(CommandHandler([cmd_name] + command.aliases, command.callback))
+        app.add_handler(
+            CommandHandler([cmd_name.value] + command.aliases, command.callback)
+        )
 
     app.add_handler(MessageHandler(filters.COMMAND, unknown))
 

@@ -1,5 +1,6 @@
 {
   "assets_directory": "./assets",
+  "language": "en",
   "database_name": "meme_data",
   "collection_name": "meme_data",
   "fonts_directory": "./fonts",

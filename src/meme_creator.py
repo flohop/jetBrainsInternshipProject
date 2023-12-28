@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os.path
 import typing
 
@@ -58,7 +57,9 @@ class ImageShuffler:
         res = {}  # key: "A","B" or "C" value: template element
 
         for ind, sample in enumerate(
-                self.collection.aggregate([{"$sample": {"size": len(self.settings.options)}}])
+            self.collection.aggregate(
+                [{"$sample": {"size": len(self.settings.options)}}]
+            )
         ):
             res[self.settings.options[ind]] = sample
 
@@ -112,13 +113,13 @@ class ImageShuffler:
         }
 
     def _scale_images(
-            self,
-            images: list[Image.Image],
-            image_coordinates: list[tuple],
-            in_row: bool,
-            max_height: int,
-            max_width: int,
-            cur_rotation,
+        self,
+        images: list[Image.Image],
+        image_coordinates: list[tuple],
+        in_row: bool,
+        max_height: int,
+        max_width: int,
+        cur_rotation,
     ):
         """
         Updates the parameter cur_rotation in place
@@ -159,24 +160,24 @@ class ImageShuffler:
 
             # Adjust the help text
             for ctr, j in enumerate(
-                    range(len(cur_rotation[self.settings.options[i]]["text-locations"]))
+                range(len(cur_rotation[self.settings.options[i]]["text-locations"]))
             ):
-                x_co, y_co, w, h = cur_rotation[self.settings.options[i]]["text-locations"][
-                    j
-                ].values()
-                cur_rotation[self.settings.options[i]]["text-locations"][ctr]["x"] = int(
-                    x_co * scale_ratio
-                )
-                cur_rotation[self.settings.options[i]]["text-locations"][ctr]["y"] = int(
-                    y_co * scale_ratio
-                )
+                x_co, y_co, w, h = cur_rotation[self.settings.options[i]][
+                    "text-locations"
+                ][j].values()
+                cur_rotation[self.settings.options[i]]["text-locations"][ctr][
+                    "x"
+                ] = int(x_co * scale_ratio)
+                cur_rotation[self.settings.options[i]]["text-locations"][ctr][
+                    "y"
+                ] = int(y_co * scale_ratio)
 
-                cur_rotation[self.settings.options[i]]["text-locations"][ctr]["width"] = int(
-                    w * scale_ratio
-                )
-                cur_rotation[self.settings.options[i]]["text-locations"][ctr]["height"] = int(
-                    h * scale_ratio
-                )
+                cur_rotation[self.settings.options[i]]["text-locations"][ctr][
+                    "width"
+                ] = int(w * scale_ratio)
+                cur_rotation[self.settings.options[i]]["text-locations"][ctr][
+                    "height"
+                ] = int(h * scale_ratio)
 
     def generate_shuffle_image(self, user_id, cur_rotation) -> str:
         """
@@ -191,9 +192,8 @@ class ImageShuffler:
             images.append(
                 Image.open(
                     os.path.join(
-                        self.settings.assets_directory,
-                        self.settings.template_directory,
-                        cur_rotation[opt]["template-location"]
+                        self.settings.get_template_directory(),
+                        cur_rotation[opt]["template-location"],
                     )
                 )
             )
@@ -236,7 +236,12 @@ class ImageShuffler:
             x, y = image_coordinates[i]
 
             draw.rectangle(
-                (x, y, x + self.settings.rectangle_size, y + self.settings.rectangle_size),
+                (
+                    x,
+                    y,
+                    x + self.settings.rectangle_size,
+                    y + self.settings.rectangle_size,
+                ),
                 fill=tuple(self.settings.rectangle_fill_color),
                 outline=tuple(self.settings.rectangle_outline_color),
             )
@@ -252,7 +257,9 @@ class ImageShuffler:
 
         # Add the guide text to the image
         for i in range(len(self.settings.options)):
-            for ind, elem in enumerate(cur_rotation[self.settings.options[i]]["text-locations"]):
+            for ind, elem in enumerate(
+                cur_rotation[self.settings.options[i]]["text-locations"]
+            ):
                 elem_x, elem_y, elem_with, elem_height = elem.values()
                 ImageGenerator.add_text(
                     draw,
@@ -266,11 +273,15 @@ class ImageShuffler:
 
         # Save the stitched image
         # create the directory if needed
-        while not os.path.exists(os.path.join(self.settings.assets_directory, self.settings.stitch_directory)):
-            os.makedirs(os.path.join(self.settings.assets_directory, self.settings.stitch_directory))
+        while not os.path.exists(self.settings.get_stitch_directory()):
+            os.makedirs(self.settings.get_stitch_directory())
 
-        image_path = str(os.path.join(self.settings.assets_directory, self.settings.stitch_directory,
-                                      self.settings.stitch_file_format % user_id))
+        image_path = str(
+            os.path.join(
+                self.settings.get_stitch_directory(),
+                self.settings.stitch_file_format % user_id,
+            )
+        )
         stitched_image.save(image_path)
 
         # Close all images
@@ -287,47 +298,48 @@ class ImageGenerator:
     """
 
     def __init__(
-            self,
-            _id,
-            name,
-            text_locations: list,
-            template_location,
-            username: str,
-            settings: Settings
+        self,
+        _id,
+        name,
+        text_locations: list,
+        template_name,
+        username: str,
+        settings: Settings,
     ):
         """
         :param _id: meme template id
         :param name: The name of the meme
         :param text_locations: List of all locations of the text (x, y, width, height)
-        :param template_location: The file location of the template
+        :param template_name: The file name of the template
         :param username: id of user creating the meme
         """
         self.id = _id
         self.name = name
         self.text_locations = text_locations
-        self.template_location = template_location
+        self.template_name = template_name
         self.username = username
 
         self.settings = settings
 
         try:
             self.image = Image.open(
-                os.path.join(self.settings.assets_directory, self.settings.template_directory, self.template_location)
+                os.path.join(self.settings.get_template_directory(), self.template_name)
             )
         except FileNotFoundError:
-            print("Could not find the file at location: ", self.template_location)
+            print("Could not find the file at location: ", self.template_name)
 
     def get_file_path(self):
         """
         :return: Path to where the finished image should be saved
         """
         # create the directory if needed
-        while not os.path.exists(os.path.join(self.settings.assets_directory, self.settings.created_directory)):
-            os.makedirs(os.path.join(self.settings.assets_directory, self.settings.created_directory))
+        while not os.path.exists(self.settings.get_created_directory()):
+            os.makedirs(self.settings.get_created_directory())
 
-        return os.path.join(self.settings.assets_directory,
-                            self.settings.created_directory,
-                            self.settings.created_file_format % self.username)
+        return os.path.join(
+            self.settings.get_created_directory(),
+            self.settings.created_file_format % self.username,
+        )
 
     def add_all_text(self, texts: list[str]) -> str:
         """
@@ -355,13 +367,13 @@ class ImageGenerator:
 
     @staticmethod
     def add_text(
-            draw: ImageDraw.ImageDraw,
-            quote: str,
-            x: int,
-            y: int,
-            width: int,
-            height: int,
-            settings: Settings | None,
+        draw: ImageDraw.ImageDraw,
+        quote: str,
+        x: int,
+        y: int,
+        width: int,
+        height: int,
+        settings: Settings | None,
     ) -> None:
         """
         Adds text to the ImageDraw object that fits the text box
@@ -416,7 +428,10 @@ class ImageGenerator:
             formatted_text = "\n".join(lines)
 
             x1, y1, x2, y2 = draw.multiline_textbbox(
-                (0, 0), formatted_text, candidate_font, stroke_width=settings.font_stroke_width
+                (0, 0),
+                formatted_text,
+                candidate_font,
+                stroke_width=settings.font_stroke_width,
             )
             w, h = x2 - x1, y2 - y1
 
@@ -437,25 +452,3 @@ class ImageGenerator:
                 stroke_width=settings.font_stroke_width,
                 stroke_fill=settings.font_stroke_fill,
             )
-
-
-# if __name__ == "__main__":
-# configure environment and staging
-# load_dotenv()
-# TOKEN = os.getenv("TELEGRAM_TOKEN")
-
-# ENVIRONMENT = os.getenv("ENVIRONMENT")
-# LANGUAGE = os.getenv("LANGUAGE")
-# LANGUAGE_FILE_FORMAT = os.getenv("LANGUAGE_FILE_FORMAT")
-# CONFIG_DIR = os.getenv("CONFIG_DIRECTORY")
-
-# CONFIG_LOCATION = os.path.join(
-#    CONFIG_DIR, os.getenv("CONFIG_FILE_FORMAT") % ENVIRONMENT
-# )
-# shuffler = ImageShuffler(CONFIG_LOCATION)
-# rotation = (
-#    shuffler.shuffle()
-# )  # can generate a Gen from the date returned from here to avoid
-
-# print(shuffler.generate_shuffle_image("flohop", rotation))
-# print("Finished")

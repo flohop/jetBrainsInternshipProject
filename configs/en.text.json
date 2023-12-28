@@ -3,7 +3,7 @@
   "no_shuffle": "Not so quick there, you first have to call %s",
   "wrong_num": "Did not get the right number of texts, please provide exactly %i separated texts. \n Example: %s",
   "shuffle_help_text": "Return a 3 randomly selected template from which you can choose one to create your meme",
-  "a_help_text": "Pick image A (/A, /a), B (/B, /b) or C (/C, /c) and provide the right numbers of texts e.g. \"Text 1\" \"Text 2\"",
+  "pick_help_text": "Pick image A (/A), B (/B) or C (/C) and provide the right numbers of texts e.g. \"Text 1\" \"Text 2\"",
   "start_help_text": "Intro text to show what the app can do",
   "unknown_command": "Sorry, I didn't understand that command.",
   "hello_message": "Hello %s \uD83D\uDC4B ",

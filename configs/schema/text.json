@@ -14,7 +14,7 @@
     "shuffle_help_text": {
       "type": "string"
     },
-    "a_help_text": {
+    "pick_help_text": {
       "type": "string"
     },
     "start_help_text": {

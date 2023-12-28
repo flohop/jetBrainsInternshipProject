@@ -1,6 +1,11 @@
-from dataclasses_json import dataclass_json
+from __future__ import annotations
+
+import os.path
 from dataclasses import dataclass
-from typing import List, Callable
+from typing import Callable
+from typing import List
+
+from dataclasses_json import dataclass_json
 
 
 @dataclass_json
@@ -10,7 +15,7 @@ class TranslationText:
     no_shuffle: str
     wrong_num: str
     shuffle_help_text: str
-    a_help_text: str
+    pick_help_text: str
     start_help_text: str
     unknown_command: str
     hello_message: str
@@ -21,6 +26,7 @@ class TranslationText:
 @dataclass
 class Settings:
     assets_directory: str
+    language: str
     database_name: str
     collection_name: str
     fonts_directory: str
@@ -47,10 +53,21 @@ class Settings:
     text_box_width_ratio: float
     text_box_height_ratio: float
 
+    def get_stitch_directory(self):
+        return os.path.join(self.assets_directory, self.stitch_directory)
+
+    def get_template_directory(self):
+        return os.path.join(self.assets_directory, self.template_directory)
+
+    def get_created_directory(self):
+        return os.path.join(self.assets_directory, self.created_directory)
+
+    def get_fonts_directory(self):
+        return os.path.join(self.assets_directory, self.fonts_directory)
+
 
 @dataclass
 class Command:
     description: str
     callback: Callable
     aliases: list[str]
-
