@@ -72,13 +72,16 @@ textbox where text can be entered is saved.
 To make the bot more usable and scalable, some of the features listed here
 could be implemented:
 
- <details>
-  <summary>Add more meme templates</summary>
 
-    Currently there are only 10 meme templates in the database.
-    More templates should be added to give the user more options to choose from.
- </details>
 
+<details>
+    <summary>Let user select a language</summary>
+
+    Currently to change the language, the environment variable has to be changed
+    and the server restarted. A feature could be added that lets pick the language in
+    which the bot communicates with them
+
+</details>
 
 
  <details>
@@ -111,6 +114,13 @@ could be implemented:
     Currently all the templates and created memes are saved on the host server, which adds
     additional workload on a single machine. To prevent this and use more storage, a cloud service
     such as AWS S3 Cloud Storage could be used to save the images in the cloud.
+ </details>
+
+ <details>
+  <summary>Add more meme templates</summary>
+
+    Currently there are only 10 meme templates in the database.
+    More templates should be added to give the user more options to choose from.
  </details>
 
 ## Outro

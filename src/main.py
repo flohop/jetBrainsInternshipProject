@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import asyncio
 import copy
+import dataclasses
 import json
 import os
 import shlex
+import typing
 
 import telegram.error
 from dotenv import load_dotenv
@@ -43,38 +45,49 @@ shuffler = ImageShuffler(
     CONFIG_LOCATION
 )  # Everyone uses the same shuffler (is stateless).
 
+
+@dataclasses.dataclass
+class Command:
+    description: str
+    callback: typing.Callable
+    aliases: list[str]
+
+
 commands = {
-    "shuffle": [
-        TEXT_DATA["SHUFFLE_HELP_TEXT"],
-        lambda update, _: shuffle(update, shuffler, user_shuffle),  # function
-        ["s"],  # aliases
-    ],
-    "A": [
-        TEXT_DATA["A_HELP_TEXT"],
-        lambda update, _: select(update, user_shuffle),
-        [x for x in shuffler.OPTIONS if x != "A"]
+    "shuffle": Command(
+        description=TEXT_DATA["SHUFFLE_HELP_TEXT"],
+        callback=lambda update, _: shuffle(update, shuffler, user_shuffle),  # function
+        aliases=["s"],
+    ),
+    "A": Command(
+        description=TEXT_DATA["A_HELP_TEXT"],
+        callback=lambda update, _: select(update, user_shuffle),
+        aliases=[x for x in shuffler.OPTIONS if x != "A"]
         + [x.lower() for x in shuffler.OPTIONS],
-    ],
-    "start": [TEXT_DATA["START_HELP_TEXT"], lambda update, _: start(update, _), []],
+    ),
+    "start": Command(
+        description=TEXT_DATA["START_HELP_TEXT"],
+        callback=lambda update, _: start(update, _),
+        aliases=[],
+    ),
 }
 
 
-def format_instruction(command: str, commands_dict: dict) -> str:
+def format_instruction(command_name: str, commands_dict: dict[str, Command]) -> str:
     """
     Helper function to format an instruction
-    :param command: The name of the command
-    :param commands_dict: The commands dictionary containing all
-    the infos about the command
+    :param command_name: The name of the command
+    :param commands_dict: The commands dictionary containing the Command object
     :return: The formatted command string
     """
-    desc, _, aliases = commands_dict[command]
+
+    cur_command = commands_dict[command_name]
 
     alias_vals = ""
-    if aliases:
-        alias_vals = " ".join("/" + elem for elem in aliases)
-        alias_vals = " (" + alias_vals + ")"
+    if cur_command.aliases:
+        alias_vals = "(" + " ".join("/" + elem for elem in cur_command.aliases) + ")"
 
-    return f"/{command}{alias_vals} {desc}"
+    return f"/{cur_command} {alias_vals} {cur_command.description}"
 
 
 # Message
@@ -195,8 +208,8 @@ if __name__ == "__main__":
     app = ApplicationBuilder().token(TOKEN).build()
 
     # register all commands
-    for cmd, (_, fct, alias) in commands.items():
-        app.add_handler(CommandHandler([cmd] + alias, fct))
+    for cmd_name, command in commands.items():
+        app.add_handler(CommandHandler([cmd_name] + command.aliases, command.callback))
 
     app.add_handler(MessageHandler(filters.COMMAND, unknown))
 
