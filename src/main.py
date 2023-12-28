@@ -201,7 +201,9 @@ if __name__ == "__main__":
         CommandNames.PICK: Command(
             description=text_data.pick_help_text,
             callback=lambda update, _: select(update, user_shuffle),
-            aliases=[x for x in shuffler.settings.options if x != CommandNames.PICK.value],
+            aliases=[
+                x for x in shuffler.settings.options if x != CommandNames.PICK.value
+            ],
         ),
         CommandNames.START: Command(
             description=text_data.start_help_text,

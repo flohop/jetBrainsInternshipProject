@@ -8,7 +8,6 @@ from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
 from pymongo import MongoClient
-
 from schemas import Settings
 
 
