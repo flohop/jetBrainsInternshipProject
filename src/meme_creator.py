@@ -10,6 +10,8 @@ from PIL import ImageDraw
 from PIL import ImageFont
 from pymongo import MongoClient
 
+from schemas import Settings
+
 
 def singleton(class_):
     instances = {}
@@ -31,43 +33,16 @@ class ImageShuffler:
     """
 
     # Constant
-    def __init__(self, config_file):
-        # Load the configs
-        with open(config_file) as f:
-            self.CONFIGS = json.load(f)
-
-        self.ASSETS_DIRECTORY: str = self.CONFIGS["ASSETS_DIRECTORY"]
-        self.CONFIGS_DIRECTORY: str = self.CONFIGS["CONFIGS_DIRECTORY"]
-
-        self.STITCH_DIRECTORY: str = os.path.join(
-            self.ASSETS_DIRECTORY, self.CONFIGS["STITCH_DIRECTORY"]
-        )
-        self.TEMPLATE_DIRECTORY: str = os.path.join(
-            self.ASSETS_DIRECTORY, self.CONFIGS["TEMPLATE_DIRECTORY"]
-        )
-        self.CREATED_DIRECTORY: str = os.path.join(
-            self.ASSETS_DIRECTORY, self.CONFIGS["CREATED_DIRECTORY"]
-        )
-        self.DATA_LOCATION: str = os.path.join(
-            self.CONFIGS_DIRECTORY, self.CONFIGS["DATA_LOCATION"]
-        )
-
-        self.RECTANGLE_FILL_COLOR = tuple(self.CONFIGS["RECTANGLE_FILL_COLOR"])
-        self.RECTANGLE_OUTLINE_COLOR = tuple(self.CONFIGS["RECTANGLE_OUTLINE_COLOR"])
-        self.RECTANGLE_SIZE = self.CONFIGS["RECTANGLE_SIZE"]
-        self.FILE_FORMAT = self.CONFIGS["STITCH_FILE_FORMAT"]
-        self.OPTIONS = self.CONFIGS["OPTIONS"]
-        self.HEIGHT_BIAS = self.CONFIGS["HEIGHT_BIAS"]
-        self.FILE_MODE = self.CONFIGS["FILE_MODE"]
-        self.PLACEHOLDER_TEXT = self.CONFIGS["PLACEHOLDER_TEXT"]
+    def __init__(self, settings):
+        # Load the settings
+        self.settings = settings
 
         mongo_server_url = os.getenv("MONGO_SERVER_URL")
-        database_name = self.CONFIGS["DATABASE_NAME"]
-        collection_name = self.CONFIGS["COLLECTION_NAME"]
+        database_name = self.settings.database_name
+        collection_name = self.settings.collection_name
 
         load_dotenv()
 
-        # Loading all items in memory
         client = MongoClient(mongo_server_url)
 
         db = client[database_name]
@@ -83,9 +58,9 @@ class ImageShuffler:
         res = {}  # key: "A","B" or "C" value: template element
 
         for ind, sample in enumerate(
-            self.collection.aggregate([{"$sample": {"size": len(self.OPTIONS)}}])
+                self.collection.aggregate([{"$sample": {"size": len(self.settings.options)}}])
         ):
-            res[self.OPTIONS[ind]] = sample
+            res[self.settings.options[ind]] = sample
 
         return res
 
@@ -97,7 +72,7 @@ class ImageShuffler:
         """
         votes = 0
         for image in images:
-            if image.width > image.height * self.HEIGHT_BIAS:
+            if image.width > image.height * self.settings.height_bias:
                 votes -= 1
             elif image.height > image.width:
                 votes += 1
@@ -116,7 +91,7 @@ class ImageShuffler:
             raise ValueError("Value can not be none")
         max_height = images[0].height
         max_width = images[0].width
-        for ind in range(1, len(self.OPTIONS)):
+        for ind in range(1, len(self.settings.options)):
             if images[ind] is None:
                 raise ValueError("Value can not be none")
 
@@ -137,13 +112,13 @@ class ImageShuffler:
         }
 
     def _scale_images(
-        self,
-        images: list[Image.Image],
-        image_coordinates: list[tuple],
-        in_row: bool,
-        max_height: int,
-        max_width: int,
-        cur_rotation,
+            self,
+            images: list[Image.Image],
+            image_coordinates: list[tuple],
+            in_row: bool,
+            max_height: int,
+            max_width: int,
+            cur_rotation,
     ):
         """
         Updates the parameter cur_rotation in place
@@ -159,8 +134,8 @@ class ImageShuffler:
         # In column => Set width
         # Cur x coordinate = prev width * prev scale_ratio
 
-        prev_scale_ratio = [1] * (len(self.OPTIONS) + 1)
-        for i in range(0, len(self.OPTIONS)):
+        prev_scale_ratio = [1] * (len(self.settings.options) + 1)
+        for i in range(0, len(self.settings.options)):
             img = images[i]
 
             scale_ratio = max_height / img.height if in_row else max_width / img.width
@@ -184,22 +159,22 @@ class ImageShuffler:
 
             # Adjust the help text
             for ctr, j in enumerate(
-                range(len(cur_rotation[self.OPTIONS[i]]["text-locations"]))
+                    range(len(cur_rotation[self.settings.options[i]]["text-locations"]))
             ):
-                x_co, y_co, w, h = cur_rotation[self.OPTIONS[i]]["text-locations"][
+                x_co, y_co, w, h = cur_rotation[self.settings.options[i]]["text-locations"][
                     j
                 ].values()
-                cur_rotation[self.OPTIONS[i]]["text-locations"][ctr]["x"] = int(
+                cur_rotation[self.settings.options[i]]["text-locations"][ctr]["x"] = int(
                     x_co * scale_ratio
                 )
-                cur_rotation[self.OPTIONS[i]]["text-locations"][ctr]["y"] = int(
+                cur_rotation[self.settings.options[i]]["text-locations"][ctr]["y"] = int(
                     y_co * scale_ratio
                 )
 
-                cur_rotation[self.OPTIONS[i]]["text-locations"][ctr]["width"] = int(
+                cur_rotation[self.settings.options[i]]["text-locations"][ctr]["width"] = int(
                     w * scale_ratio
                 )
-                cur_rotation[self.OPTIONS[i]]["text-locations"][ctr]["height"] = int(
+                cur_rotation[self.settings.options[i]]["text-locations"][ctr]["height"] = int(
                     h * scale_ratio
                 )
 
@@ -212,11 +187,13 @@ class ImageShuffler:
         """
         assert len(cur_rotation) != 0, "Call shuffle first to generate the images"
         images = []
-        for opt in self.OPTIONS:
+        for opt in self.settings.options:
             images.append(
                 Image.open(
                     os.path.join(
-                        self.TEMPLATE_DIRECTORY, cur_rotation[opt]["template-location"]
+                        self.settings.assets_directory,
+                        self.settings.template_directory,
+                        cur_rotation[opt]["template-location"]
                     )
                 )
             )
@@ -239,60 +216,61 @@ class ImageShuffler:
         # Create a new blank image with the calculated dimensions
         if in_row:
             width = image_coordinates[-1][0] + images[-1].width
-            stitched_image = Image.new(self.FILE_MODE, (width, max_height))
+            stitched_image = Image.new(self.settings.file_mode, (width, max_height))
         else:
             height = image_coordinates[-1][1] + images[-1].height
             stitched_image = Image.new(
-                self.FILE_MODE,
+                self.settings.file_mode,
                 (max_width, height),
             )
 
         # Paste the individual images onto the stitched image
-        for ind in range(len(self.OPTIONS)):
+        for ind in range(len(self.settings.options)):
             stitched_image.paste(images[ind], image_coordinates[ind])
 
         # Add "A"/"B"/"C" to the image
         draw = ImageDraw.Draw(stitched_image)
 
         # Add rectangle
-        for i in range(len(self.OPTIONS)):
+        for i in range(len(self.settings.options)):
             x, y = image_coordinates[i]
 
             draw.rectangle(
-                (x, y, x + self.RECTANGLE_SIZE, y + self.RECTANGLE_SIZE),
-                fill=self.RECTANGLE_FILL_COLOR,
-                outline=self.RECTANGLE_OUTLINE_COLOR,
+                (x, y, x + self.settings.rectangle_size, y + self.settings.rectangle_size),
+                fill=tuple(self.settings.rectangle_fill_color),
+                outline=tuple(self.settings.rectangle_outline_color),
             )
             ImageGenerator.add_text(
                 draw,
-                self.OPTIONS[i],
+                self.settings.options[i],
                 x,
                 y,
-                self.RECTANGLE_SIZE,
-                self.RECTANGLE_SIZE,
-                config=self.CONFIGS,
+                self.settings.rectangle_size,
+                self.settings.rectangle_size,
+                settings=self.settings,
             )
 
         # Add the guide text to the image
-        for i in range(len(self.OPTIONS)):
-            for ind, elem in enumerate(cur_rotation[self.OPTIONS[i]]["text-locations"]):
+        for i in range(len(self.settings.options)):
+            for ind, elem in enumerate(cur_rotation[self.settings.options[i]]["text-locations"]):
                 elem_x, elem_y, elem_with, elem_height = elem.values()
                 ImageGenerator.add_text(
                     draw,
-                    f"{self.PLACEHOLDER_TEXT}{ind + 1}",
+                    f"{self.settings.placeholder_text}{ind + 1}",
                     elem_x + image_coordinates[i][0],
                     elem_y + image_coordinates[i][1],
                     elem_with,
                     elem_height,
-                    self.CONFIGS,
+                    self.settings,
                 )
 
         # Save the stitched image
         # create the directory if needed
-        while not os.path.exists(self.STITCH_DIRECTORY):
-            os.makedirs(self.STITCH_DIRECTORY)
+        while not os.path.exists(os.path.join(self.settings.assets_directory, self.settings.stitch_directory)):
+            os.makedirs(os.path.join(self.settings.assets_directory, self.settings.stitch_directory))
 
-        image_path = os.path.join(self.STITCH_DIRECTORY, self.FILE_FORMAT % user_id)
+        image_path = str(os.path.join(self.settings.assets_directory, self.settings.stitch_directory,
+                                      self.settings.stitch_file_format % user_id))
         stitched_image.save(image_path)
 
         # Close all images
@@ -308,17 +286,14 @@ class ImageGenerator:
     for which text should be added
     """
 
-    # prevent loading the settings for each instance
-    CONFIGS: dict[typing.Any, typing.Any] | None = None
-
     def __init__(
-        self,
-        _id,
-        name,
-        text_locations: list,
-        template_location,
-        username: str,
-        config_file: str,
+            self,
+            _id,
+            name,
+            text_locations: list,
+            template_location,
+            username: str,
+            settings: Settings
     ):
         """
         :param _id: meme template id
@@ -333,44 +308,11 @@ class ImageGenerator:
         self.template_location = template_location
         self.username = username
 
-        # Load the config file
-        if ImageGenerator.CONFIGS is None:
-            with open(config_file, "r") as f:
-                ImageGenerator.CONFIGS = json.load(f)
-
-        self.ASSETS_DIRECTORY: str = ImageGenerator.CONFIGS["ASSETS_DIRECTORY"]
-        self.OUTPUT_DIRECTORY: str = os.path.join(
-            self.ASSETS_DIRECTORY, ImageGenerator.CONFIGS["CREATED_DIRECTORY"]
-        )
-        self.TEMPLATE_DIRECTORY: str = os.path.join(
-            self.ASSETS_DIRECTORY, ImageGenerator.CONFIGS["TEMPLATE_DIRECTORY"]
-        )
-        self.DATA_LOCATION: str = os.path.join(
-            self.ASSETS_DIRECTORY, ImageGenerator.CONFIGS["DATA_LOCATION"]
-        )
-        self.FONTS_DIRECTORY: str = os.path.join(
-            self.ASSETS_DIRECTORY, ImageGenerator.CONFIGS["FONTS_DIRECTORY"]
-        )
-
-        self.FONT_MAX_SIZE: int = ImageGenerator.CONFIGS["FONT_MAX_SIZE"]
-        self.FONT_MIN_SIZE: int = ImageGenerator.CONFIGS["FONT_MIN_SIZE"]
-        self.FONT_STROKE_WIDTH: int = ImageGenerator.CONFIGS["FONT_STROKE_WIDTH"]
-        self.FONT_STROKE_FILL: str = ImageGenerator.CONFIGS["FONT_STROKE_FILL"]
-        self.FONT_LOCATION: str = os.path.join(
-            self.FONTS_DIRECTORY, ImageGenerator.CONFIGS["FONT_PATH"]
-        )
-        self.FILE_FORMAT: str = ImageGenerator.CONFIGS["CREATED_FILE_FORMAT"]
-        self.TEXT_BOX_WIDTH_RATIO: float = ImageGenerator.CONFIGS[
-            "TEXT_BOX_WIDTH_RATIO"
-        ]
-        self.TEXT_BOX_HEIGHT_RATIO: float = ImageGenerator.CONFIGS[
-            "TEXT_BOX_HEIGHT_RATIO"
-        ]
-        self.FILE_MODE = ImageGenerator.CONFIGS["FILE_MODE"]
+        self.settings = settings
 
         try:
             self.image = Image.open(
-                os.path.join(str(self.TEMPLATE_DIRECTORY), self.template_location)
+                os.path.join(self.settings.assets_directory, self.settings.template_directory, self.template_location)
             )
         except FileNotFoundError:
             print("Could not find the file at location: ", self.template_location)
@@ -380,10 +322,12 @@ class ImageGenerator:
         :return: Path to where the finished image should be saved
         """
         # create the directory if needed
-        while not os.path.exists(self.OUTPUT_DIRECTORY):
-            os.makedirs(self.OUTPUT_DIRECTORY)
+        while not os.path.exists(os.path.join(self.settings.assets_directory, self.settings.created_directory)):
+            os.makedirs(os.path.join(self.settings.assets_directory, self.settings.created_directory))
 
-        return os.path.join(self.OUTPUT_DIRECTORY, self.FILE_FORMAT % self.username)
+        return os.path.join(self.settings.assets_directory,
+                            self.settings.created_directory,
+                            self.settings.created_file_format % self.username)
 
     def add_all_text(self, texts: list[str]) -> str:
         """
@@ -401,53 +345,59 @@ class ImageGenerator:
             text = texts[i]
             x, y, width, height = self.text_locations[i].values()
 
-            self.add_text(draw, text, x, y, width, height, ImageGenerator.CONFIGS)
+            self.add_text(draw, text, x, y, width, height, self.settings)
 
         # Convert to rgb to prevent RGBA mode errors
         if self.image.format == "PNG":
-            self.image = self.image.convert(self.FILE_MODE)
+            self.image = self.image.convert(self.settings.file_mode)
         self.image.save(self.get_file_path())
         return self.get_file_path()
 
     @staticmethod
     def add_text(
-        draw: ImageDraw.ImageDraw,
-        quote: str,
-        x: int,
-        y: int,
-        width: int,
-        height: int,
-        config: dict[typing.Any, typing.Any] | None,
+            draw: ImageDraw.ImageDraw,
+            quote: str,
+            x: int,
+            y: int,
+            width: int,
+            height: int,
+            settings: Settings | None,
     ) -> None:
         """
         Adds text to the ImageDraw object that fits the text box
+        Uses binary search to quickly find the biggest font size that fits the box
         :param draw: Draw object
         :param quote: The text that should be added
         :param x: x-coordinate of text location
         :param y: y-coordinate of text location
         :param width: width of the text block
         :param height: height of the text block
-        :param config: the configuration dictionary
+        :param settings: the configuration dictionary
         :return: None (Changed draw object in place)
         """
-        if config is None:
+
+        if settings is None:
             raise ValueError("Please provide a valid configuration dictionary")
 
-        text_width = width * config["TEXT_BOX_WIDTH_RATIO"]
-        text_max_height = height * config["TEXT_BOX_HEIGHT_RATIO"]
+        text_width = width * settings.text_box_width_ratio
+        text_max_height = height * settings.text_box_height_ratio
 
-        # Reduce the font size until it fits the box
-        size = config["FONT_MAX_SIZE"]
-        while size >= config["FONT_MIN_SIZE"]:
-            font = ImageFont.truetype(
+        # Binary search for the maximum font size
+        low, high = settings.font_min_size, settings.font_max_size
+        font = None
+
+        while low <= high:
+            mid = (low + high) // 2
+            candidate_font = ImageFont.truetype(
                 os.path.join(
-                    config["ASSETS_DIRECTORY"],
-                    config["FONTS_DIRECTORY"],
-                    config["FONT_PATH"],
+                    settings.assets_directory,
+                    settings.fonts_directory,
+                    settings.font_path,
                 ),
-                size,
+                mid,
                 layout_engine=ImageFont.Layout.BASIC,
             )
+
             lines = []
             line = ""
             for word in quote.split():
@@ -455,36 +405,38 @@ class ImageGenerator:
                 if line:
                     proposed_line += " "
                 proposed_line += word
-                if font.getlength(proposed_line) <= text_width:
+                if candidate_font.getlength(proposed_line) <= text_width:
                     line = proposed_line
                 else:
-                    # If this word was added, the line would be too long
-                    # Start a new line instead
                     lines.append(line)
                     line = word
+
             if line:
                 lines.append(line)
-            quote = "\n".join(lines)
+            formatted_text = "\n".join(lines)
 
             x1, y1, x2, y2 = draw.multiline_textbbox(
-                (0, 0), quote, font, stroke_width=2
+                (0, 0), formatted_text, candidate_font, stroke_width=settings.font_stroke_width
             )
             w, h = x2 - x1, y2 - y1
-            if h <= text_max_height:
-                break
-            else:
-                # The text did not fit comfortably into the image
-                # Try again at a smaller font size
-                size -= 1
 
-        draw.multiline_text(
-            (x + (width / 2 - w / 2 - x1), y + (height / 2 - h / 2 - y1)),
-            quote,
-            font=font,
-            align="center",
-            stroke_width=config["FONT_STROKE_WIDTH"],
-            stroke_fill=config["FONT_STROKE_FILL"],
-        )
+            if h <= text_max_height:
+                # The text fits comfortably
+                font = candidate_font
+                low = mid + 1
+            else:
+                # The text does not fit comfortably, try a smaller font size
+                high = mid - 1
+
+        if font is not None:
+            draw.multiline_text(
+                (x + (width / 2 - w / 2 - x1), y + (height / 2 - h / 2 - y1)),
+                formatted_text,
+                font=font,
+                align="center",
+                stroke_width=settings.font_stroke_width,
+                stroke_fill=settings.font_stroke_fill,
+            )
 
 
 # if __name__ == "__main__":

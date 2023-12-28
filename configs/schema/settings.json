@@ -1,0 +1,145 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "properties": {
+    "assets_directory": {
+      "type": "string"
+    },
+    "database_name": {
+      "type": "string"
+    },
+    "collection_name": {
+      "type": "string"
+    },
+    "fonts_directory": {
+      "type": "string"
+    },
+    "configs_directory": {
+      "type": "string"
+    },
+    "stitch_directory": {
+      "type": "string"
+    },
+    "template_directory": {
+      "type": "string"
+    },
+    "created_directory": {
+      "type": "string"
+    },
+    "data_location": {
+      "type": "string"
+    },
+    "rectangle_fill_color": {
+      "type": "array",
+      "items": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "integer"
+        },
+        {
+          "type": "integer"
+        }
+      ]
+    },
+    "rectangle_outline_color": {
+      "type": "array",
+      "items": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "integer"
+        },
+        {
+          "type": "integer"
+        }
+      ]
+    },
+    "rectangle_size": {
+      "type": "integer"
+    },
+    "file_mode": {
+      "type": "string"
+    },
+    "placeholder_text": {
+      "type": "string"
+    },
+    "stitch_file_format": {
+      "type": "string"
+    },
+    "language_file_format": {
+      "type": "string"
+    },
+    "options": {
+      "type": "array",
+      "items": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "string"
+        }
+      ]
+    },
+    "height_bias": {
+      "type": "number"
+    },
+    "font_max_size": {
+      "type": "integer"
+    },
+    "font_min_size": {
+      "type": "integer"
+    },
+    "font_stroke_width": {
+      "type": "integer"
+    },
+    "font_stroke_fill": {
+      "type": "string"
+    },
+    "font_path": {
+      "type": "string"
+    },
+    "created_file_format": {
+      "type": "string"
+    },
+    "text_box_width_ratio": {
+      "type": "number"
+    },
+    "text_box_height_ratio": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "assets_directory",
+    "database_name",
+    "collection_name",
+    "fonts_directory",
+    "configs_directory",
+    "stitch_directory",
+    "template_directory",
+    "created_directory",
+    "data_location",
+    "rectangle_fill_color",
+    "rectangle_outline_color",
+    "rectangle_size",
+    "file_mode",
+    "placeholder_text",
+    "stitch_file_format",
+    "language_file_format",
+    "options",
+    "height_bias",
+    "font_max_size",
+    "font_min_size",
+    "font_stroke_width",
+    "font_stroke_fill",
+    "font_path",
+    "created_file_format",
+    "text_box_width_ratio",
+    "text_box_height_ratio"
+  ]
+}

@@ -3,57 +3,35 @@
   <component name="JsonSchemaMappingsProjectConfiguration">
     <state>
       <map>
-        <entry key="No JSON schema">
+        <entry key="Translation Text">
           <value>
             <SchemaInfo>
-              <option name="ignoredFile" value="true" />
-              <option name="name" value="No JSON schema" />
-              <option name="relativePathToSchema" value="" />
-              <option name="applicationDefined" value="true" />
+              <option name="generatedName" value="New Schema" />
+              <option name="name" value="Translation Text" />
+              <option name="relativePathToSchema" value="configs/schema/text.json" />
               <option name="patterns">
                 <list>
                   <Item>
-                    <option name="path" value="file://$PROJECT_DIR$/configs/constants.json" />
+                    <option name="path" value="configs/en.text.json" />
                   </Item>
                 </list>
               </option>
-              <option name="isIgnoredFile" value="true" />
             </SchemaInfo>
           </value>
         </entry>
-        <entry key="No JSON schema1">
+        <entry key="settings">
           <value>
             <SchemaInfo>
-              <option name="ignoredFile" value="true" />
-              <option name="name" value="No JSON schema" />
-              <option name="relativePathToSchema" value="" />
-              <option name="applicationDefined" value="true" />
+              <option name="generatedName" value="New Schema" />
+              <option name="name" value="settings" />
+              <option name="relativePathToSchema" value="configs/schema/settings.json" />
               <option name="patterns">
                 <list>
                   <Item>
-                    <option name="path" value="file://$PROJECT_DIR$/configs/dev.settings.json" />
+                    <option name="path" value="configs/dev.settings.json" />
                   </Item>
                 </list>
               </option>
-              <option name="isIgnoredFile" value="true" />
-            </SchemaInfo>
-          </value>
-        </entry>
-        <entry key="No JSON schema11">
-          <value>
-            <SchemaInfo>
-              <option name="ignoredFile" value="true" />
-              <option name="name" value="No JSON schema" />
-              <option name="relativePathToSchema" value="" />
-              <option name="applicationDefined" value="true" />
-              <option name="patterns">
-                <list>
-                  <Item>
-                    <option name="path" value="file://$PROJECT_DIR$/configs/test.settings.json" />
-                  </Item>
-                </list>
-              </option>
-              <option name="isIgnoredFile" value="true" />
             </SchemaInfo>
           </value>
         </entry>

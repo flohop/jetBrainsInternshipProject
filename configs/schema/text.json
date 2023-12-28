@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "properties": {
+    "wrong_format": {
+      "type": "string"
+    },
+    "no_shuffle": {
+      "type": "string"
+    },
+    "wrong_num": {
+      "type": "string"
+    },
+    "shuffle_help_text": {
+      "type": "string"
+    },
+    "a_help_text": {
+      "type": "string"
+    },
+    "start_help_text": {
+      "type": "string"
+    },
+    "unknown_command": {
+      "type": "string"
+    },
+    "hello_message": {
+      "type": "string"
+    },
+    "placeholder_text": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "wrong_format",
+    "no_shuffle",
+    "wrong_num",
+    "shuffle_help_text",
+    "a_help_text",
+    "start_help_text",
+    "unknown_command",
+    "hello_message",
+    "placeholder_text"
+  ]
+}
