@@ -53,6 +53,7 @@ def get_instructions(all_commands: dict[CommandNames, Command]):
 
 # Message
 
+
 def get_num_help_text(i: int) -> str:
     return text_data.wrong_num % (
         i,
