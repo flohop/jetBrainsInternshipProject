@@ -9,7 +9,6 @@ import shlex
 
 import telegram.error
 from command_names import CommandNames
-from command_names import CommandNamesLiteral
 from dotenv import load_dotenv
 from meme_creator import ImageGenerator
 from meme_creator import ImageShuffler
@@ -23,9 +22,11 @@ from telegram.ext import ContextTypes
 from telegram.ext import filters
 from telegram.ext import MessageHandler
 
+# from command_names import CommandNamesLiteral
+
 
 def format_instruction(
-    command_name: CommandNamesLiteral, commands_dict: dict[CommandNames, Command]
+    command_name: CommandNames, commands_dict: dict[CommandNames, Command]
 ) -> str:
     """
     Helper function to format an instruction
@@ -43,7 +44,7 @@ def format_instruction(
     return f"/{command_name.value} {alias_vals} {cur_command.description}"
 
 
-def get_instructions(all_commands: dict[CommandNamesLiteral, Command]):
+def get_instructions(all_commands: dict[CommandNames, Command]):
     return f"""
     1. {format_instruction(CommandNames.SHUFFLE, all_commands)}
     2. {format_instruction(CommandNames.PICK, all_commands)}
@@ -52,11 +53,10 @@ def get_instructions(all_commands: dict[CommandNamesLiteral, Command]):
 
 # Message
 
-
-def get_num_help_text(command_name: CommandNamesLiteral, i: int) -> str:
+def get_num_help_text(i: int) -> str:
     return text_data.wrong_num % (
         i,
-        f" /{command_name} {' '.join([text_data.placeholder_text] * i)}",
+        f" /{CommandNames.PICK.value} {' '.join([text_data.placeholder_text] * i)}",
     )
 
 
@@ -118,7 +118,7 @@ async def select(update: Update, cur_shuffle: dict) -> None:
     # make sure right number of texts were entered
     if not texts or texts[0] == "" or len(texts) != len(item["text-locations"]):
         await incoming_message.reply_text(
-            get_num_help_text(cmd, len(item["text-locations"]))
+            get_num_help_text(len(item["text-locations"]))
         )
         return
 
