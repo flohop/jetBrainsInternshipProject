@@ -7,5 +7,3 @@ class CommandNames(Enum):
     SHUFFLE = "shuffle"
     PICK = "A"
     START = "start"
-    B = "B"
-    C = "C"
