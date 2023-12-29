@@ -80,7 +80,7 @@ could be implemented:
     <summary>Let a user select a language</summary>
 
     Currently to change the language, the settings variable has to be changed
-    and the server restarted. A feature could be added that lets users 
+    and the server restarted. A feature could be added that lets users
     pick the language in which the bot communicates with them
 
 </details>
@@ -89,8 +89,8 @@ could be implemented:
  <details>
   <summary>Allow users to search for specific meme templates</summary>
 
-    Currently the user has to call /shuffle until he finds a meme 
-    template that fits his needs. To avoid this, a feature could be 
+    Currently the user has to call /shuffle until he finds a meme
+    template that fits his needs. To avoid this, a feature could be
     added to let users search for specific templates
  </details>
 
@@ -100,14 +100,14 @@ could be implemented:
   <summary>Separate telegram interaction and image generator into individual microservices</summary>
 
     The part of the code that generates the code could be moved out into a separate
-    docker container, to be able to scale it independetly without creating more 
+    docker container, to be able to scale it independetly without creating more
     instances of the container that interacts with the Telegram API
  </details>
 
  <details>
   <summary>More Tests</summary>
 
-    Tests for test ImageShuffler class have already been added. 
+    Tests for test ImageShuffler class have already been added.
     But of course more tests for the other classes could be added to increase
     test test coverage of the project
  </details>
@@ -115,9 +115,9 @@ could be implemented:
  <details>
   <summary>Cloud Blob Storage</summary>
 
-    Currently all the templates are saved on the host server, 
-    which adds additional workload on a single machine. 
-    To prevent this and use more storage, a cloud service such as 
+    Currently all the templates are saved on the host server,
+    which adds additional workload on a single machine.
+    To prevent this and use more storage, a cloud service such as
     AWS S3 Cloud Storage could be used to store the images in the cloud.
 
  </details>
