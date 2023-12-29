@@ -1,9 +1,9 @@
 # Telegram Meme Bot
 
 
-<h3 align="center"><a href="https://www.youtube.com/watch?v=99mFfEvAQO4">🎥Demo Video🎥</a></h3>
+<h3 align="center"><a target="_blank" href="https://www.youtube.com/watch?v=99mFfEvAQO4">🎥Demo Video🎥</a></h3>
 
-<h3 align="center"><a href="https://t.me/jetbrains_challenge_bot">🤖Try in Telegram (hosted on  a Raspberry Pi 4)🤖</a></h3>
+<h3 align="center"><a target="_blank" href="https://t.me/jetbrains_challenge_bot">🤖Try in Telegram (hosted on  a Raspberry Pi 4)🤖</a></h3>
 
 ## Project
 Currently, when you are chatting with your friends and want to send a meme
@@ -14,7 +14,7 @@ Simply pick one of the shuffled images, enter your desired texts and forward the
 
 ## Features
 
-- **Shuffle**: Creates an image where 3 random meme templates are resized to fit on one big image with any black space.
+- **Shuffle**: Creates an image where 3 random meme templates are resized to fit on one big image without any black space and guide text is added.
 - **Select**: Pick one of the shuffled images, enter your texts and get the finished meme
 - **Image arrangement**: Based on the width and height of the 3 images, they will either be stitched together horizontally
 or vertically
@@ -29,7 +29,7 @@ or vertically
 </p>
 
 - **Docker**: To easily deploy and (in the future) scale the app, it is containerized using Docker and can be started
-using docker-compose
+with ```docker compose up```
 - **pre-commit**: To ensure consistency in the codebase, pre-commit is used with: flake8, black, mypy
 - **GitHub Actions**: To test the code at each commit, a GitHub actions pipeline was created that executes pre-commit
 and runs all the tests
@@ -41,7 +41,9 @@ For each meme template a document exists in the mongoDb collection. Since no rel
 exist in these objects, I decided to use a NoSQL database to avoid the overhead of using an SQL database such as Postgresql.
 
 For each meme template, the x and y coordinates and the width and height of each
-textbox where text can be entered is saved.
+textbox where text can be entered is saved. Additionally, the name of the template is saved, so that it can be
+accessed. In the future, if the images where not saved locally but on a service such as Amazon S3, the only
+thing  that would need to be changed is the ``template-location``.
 
 **Example document**
 
@@ -75,52 +77,56 @@ could be implemented:
 
 
 <details>
-    <summary>Let user select a language</summary>
+    <summary>Let a user select a language</summary>
 
-    Currently to change the language, the environment variable has to be changed
-    and the server restarted. A feature could be added that lets pick the language in
-    which the bot communicates with them
+    Currently to change the language, the settings variable has to be changed
+    and the server restarted. A feature could be added that lets users 
+    pick the language in which the bot communicates with them
 
 </details>
 
 
  <details>
-  <summary>Allow users to search for specific meme templates into microservices</summary>
+  <summary>Allow users to search for specific meme templates</summary>
 
-    Currently the user has to call /shuffle until he finds a meme template that fits his needs.
-    To avoid this, a feature could be added to let users search for specific templates
+    Currently the user has to call /shuffle until he finds a meme 
+    template that fits his needs. To avoid this, a feature could be 
+    added to let users search for specific templates
  </details>
 
 
 
  <details>
-  <summary>Separate telegram interaction and image generator</summary>
+  <summary>Separate telegram interaction and image generator into individual microservices</summary>
 
     The part of the code that generates the code could be moved out into a separate
-    docker container, to be able to scale it independetly without creating more instances of the
-    container that interacts with the Telegram API.
+    docker container, to be able to scale it independetly without creating more 
+    instances of the container that interacts with the Telegram API
  </details>
 
  <details>
   <summary>More Tests</summary>
 
-    Tests for test ```ImageShuffler``` class have already been added. But
-    of course more tests for the other classes could be added to improve the project
+    Tests for test ImageShuffler class have already been added. 
+    But of course more tests for the other classes could be added to increase
+    test test coverage of the project
  </details>
 
  <details>
   <summary>Cloud Blob Storage</summary>
 
-    Currently all the templates and created memes are saved on the host server, which adds
-    additional workload on a single machine. To prevent this and use more storage, a cloud service
-    such as AWS S3 Cloud Storage could be used to save the images in the cloud.
+    Currently all the templates are saved on the host server, 
+    which adds additional workload on a single machine. 
+    To prevent this and use more storage, a cloud service such as 
+    AWS S3 Cloud Storage could be used to store the images in the cloud.
+
  </details>
 
  <details>
   <summary>Add more meme templates</summary>
 
     Currently there are only 10 meme templates in the database.
-    More templates should be added to give the user more options to choose from.
+    More templates should be added to give the user more options to choose from
  </details>
 
 ## Outro
