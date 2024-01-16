@@ -3,8 +3,6 @@
 
 <h3 align="center"><a target="_blank" href="https://www.youtube.com/watch?v=99mFfEvAQO4">🎥Demo Video🎥</a></h3>
 
-<h3 align="center"><a target="_blank" href="https://t.me/jetbrains_challenge_bot">🤖Try in Telegram (hosted on  a Raspberry Pi 4)🤖</a></h3>
-
 ## Project
 Currently, when you are chatting with your friends and want to send a meme
 you have to leave the messenger, go to an ad-filled app or website, generate the meme, download it
